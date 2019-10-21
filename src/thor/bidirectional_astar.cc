@@ -184,8 +184,9 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
     *es = {EdgeSet::kTemporary, idx};
 
     // setting this edge as reached
-    if (expansion_callback_)
+    if (expansion_callback_) {
       expansion_callback_(graphreader, "bidirectional_astar", edgeid, "r", false);
+    }
   }
 
   // Handle transitions - expand from the end node of each transition
@@ -707,8 +708,9 @@ void BidirectionalAStar::SetDestination(GraphReader& graphreader, const valhalla
     adjacencylist_reverse_->add(idx);
 
     // setting this edge as settled, sending the opposing because this is the reverse tree
-    if (expansion_callback_)
+    if (expansion_callback_) {
       expansion_callback_(graphreader, "bidirectional_astar", edgeid, "r", false);
+    }
 
     // Set the initial not_thru flag to false. There is an issue with not_thru
     // flags on small loops. Set this to false here to override this for now.
