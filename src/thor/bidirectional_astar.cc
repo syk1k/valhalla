@@ -1,5 +1,6 @@
 #include "thor/bidirectional_astar.h"
 #include "baldr/datetime.h"
+#include "baldr/graphid.h"
 #include "midgard/logging.h"
 #include <algorithm>
 #include <map>
@@ -8,8 +9,21 @@ using namespace valhalla::midgard;
 using namespace valhalla::baldr;
 using namespace valhalla::sif;
 
+
+
 namespace valhalla {
 namespace thor {
+
+bool is_derived_deadend(const GraphTile* tile, const DirectedEdge* directededge) {
+    const GraphId graph_id = directededge->endnode();
+    const NodeInfo* nodeinfo = tile->node(graph_id);
+
+    // Count endnode's neighbors
+
+    // If only one neighbor, check if opposing edge to directededge
+
+    return true;
+}
 
 constexpr uint64_t kInitialEdgeLabelCountBD = 1000000;
 
@@ -108,7 +122,6 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
   const GraphTile* tile = graphreader.GetGraphTile(node);
   if (tile == nullptr) {
     return;
-  }
   const NodeInfo* nodeinfo = tile->node(node);
   if (!costing_->Allowed(nodeinfo)) {
     return;
@@ -117,9 +130,9 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
   // Expand from end node in forward direction.
   uint32_t shortcuts = 0;
   GraphId edgeid = {node.tileid(), node.level(), nodeinfo->edge_index()};
-  EdgeStatusInfo* es = edgestatus_forward_.GetPtr(edgeid, tile);
+  EdgeStatusInfo* edge_status = edgestatus_forward_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(edgeid);
-  for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid, ++es) {
+  for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid, ++edge_status) {
     // Skip shortcut edges until we have stopped expanding on the next level. Use regular
     // edges while still expanding on the next level since we can still transition down to
     // that level. If using a shortcut, set the shortcuts mask. Skip if this is a regular
@@ -137,7 +150,7 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
     // Skip this edge if edge is permanently labeled (best path already found
     // to this directed edge), if no access is allowed (based on costing method),
     // or if a complex restriction prevents transition onto this edge.
-    if (es->set() == EdgeSet::kPermanent ||
+    if (edge_status->set() == EdgeSet::kPermanent ||
         !costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) ||
         costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)) {
       continue;
@@ -151,11 +164,11 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
     // Check if edge is temporarily labeled and this path has less cost. If
     // less cost the predecessor is updated and the sort cost is decremented
     // by the difference in real cost (A* heuristic doesn't change)
-    if (es->set() == EdgeSet::kTemporary) {
-      BDEdgeLabel& lab = edgelabels_forward_[es->index()];
+    if (edge_status->set() == EdgeSet::kTemporary) {
+      BDEdgeLabel& lab = edgelabels_forward_[edge_status->index()];
       if (newcost.cost < lab.cost().cost) {
         float newsortcost = lab.sortcost() - (lab.cost().cost - newcost.cost);
-        adjacencylist_forward_->decrease(es->index(), newsortcost);
+        adjacencylist_forward_->decrease(edge_status->index(), newsortcost);
         lab.Update(pred_idx, newcost, newsortcost, tc);
       }
       continue;
@@ -181,7 +194,7 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
                                      mode_, tc,
                                      (pred.not_thru_pruning() || !directededge->not_thru()));
     adjacencylist_forward_->add(idx);
-    *es = {EdgeSet::kTemporary, idx};
+    *edge_status = {EdgeSet::kTemporary, idx};
 
     // setting this edge as reached
     if (expansion_callback_) {
@@ -205,25 +218,25 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
 
 // Expand from a node in reverse direction.
 void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
-                                       const GraphId& node,
+                                       const GraphId& graph_id,
                                        const BDEdgeLabel& pred,
                                        const uint32_t pred_idx,
                                        const DirectedEdge* opp_pred_edge,
                                        const bool from_transition) {
   // Get the tile and the node info. Skip if tile is null (can happen
   // with regional data sets) or if no access at the node.
-  const GraphTile* tile = graphreader.GetGraphTile(node);
+  const GraphTile* tile = graphreader.GetGraphTile(graph_id);
   if (tile == nullptr) {
     return;
   }
-  const NodeInfo* nodeinfo = tile->node(node);
+  const NodeInfo* nodeinfo = tile->node(graph_id);
   if (!costing_->Allowed(nodeinfo)) {
     return;
   }
 
   // Expand from end node in reverse direction.
   uint32_t shortcuts = 0;
-  GraphId edgeid = {node.tileid(), node.level(), nodeinfo->edge_index()};
+  GraphId edgeid = {graph_id.tileid(), graph_id.level(), nodeinfo->edge_index()};
   EdgeStatusInfo* es = edgestatus_reverse_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(edgeid);
   for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid, ++es) {
@@ -259,7 +272,8 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     // Skip this edge if no access is allowed (based on costing method)
     // or if a complex restriction prevents transition onto this edge.
     if (!costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge, 0, 0) ||
-        costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false)) {
+        costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false) ||
+        is_derived_deadend(t2, directededge)) {
       continue;
     }
 
@@ -308,7 +322,7 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     const NodeTransition* trans = tile->transition(nodeinfo->transition_index());
     for (uint32_t i = 0; i < nodeinfo->transition_count(); ++i, ++trans) {
       if (trans->up()) {
-        hierarchy_limits_reverse_[node.level()].up_transition_count++;
+        hierarchy_limits_reverse_[graph_id.level()].up_transition_count++;
         ExpandReverse(graphreader, trans->endnode(), pred, pred_idx, opp_pred_edge, true);
       } else if (!hierarchy_limits_reverse_[trans->endnode().level()].StopExpanding()) {
         ExpandReverse(graphreader, trans->endnode(), pred, pred_idx, opp_pred_edge, true);
@@ -425,6 +439,7 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
 
     // Expand from the search direction with lower sort cost.
     if ((fwd_pred.sortcost() + cost_diff_) < rev_pred.sortcost()) {
+      // Expand forward - set to get next edge from forward adj. list on the next pass
       // Expand forward - set to get next edge from forward adj. list on the next pass
       expand_forward = true;
       expand_reverse = false;
