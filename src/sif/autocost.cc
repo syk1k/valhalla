@@ -368,7 +368,7 @@ bool AutoCost::Allowed(const baldr::DirectedEdge* edge,
   // a not thru region and a heading selected an edge entering the
   // region.
   if (!(edge->forwardaccess() & kAutoAccess) ||
-      (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
+      //(!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
       (pred.restrictions() & (1 << edge->localedgeidx())) ||
       edge->surface() == Surface::kImpassable || IsUserAvoidEdge(edgeid) ||
       (!allow_destination_only_ && !pred.destonly() && edge->destonly())) {
@@ -407,7 +407,7 @@ bool AutoCost::AllowedReverse(const baldr::DirectedEdge* edge,
   // Check access, U-turn, and simple turn restriction.
   // Allow U-turns at dead-end nodes.
   if (!(opp_edge->forwardaccess() & kAutoAccess) ||
-      (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
+      //(!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx()) ||
       (opp_edge->restrictions() & (1 << pred.opp_local_idx())) ||
       opp_edge->surface() == Surface::kImpassable || IsUserAvoidEdge(opp_edgeid) ||
       (!allow_destination_only_ && !pred.destonly() && opp_edge->destonly())) {

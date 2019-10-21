@@ -8,21 +8,61 @@
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
 using namespace valhalla::sif;
-
-
+using std::vector;
 
 namespace valhalla {
 namespace thor {
 
-bool is_derived_deadend(const GraphTile* tile, const DirectedEdge* directededge) {
-    const GraphId graph_id = directededge->endnode();
+template <typename edge_labels_container_t>
+bool is_derived_deadend(
+        const GraphTile*& tile,
+        const DirectedEdge*& pred,
+        const std::shared_ptr<sif::DynamicCost> &costing,
+        const edge_labels_container_t &edgelabels_forward
+        //const vector<sif::BDEdgeLabel> &edgelabels_forward
+    ) {
+    const GraphId graph_id = pred->endnode();
     const NodeInfo* nodeinfo = tile->node(graph_id);
 
+    GraphId edgeid = {graph_id.tileid(), graph_id.level(), nodeinfo->edge_index()};
+    uint16_t num_valid_neighbors = 0;
+    const DirectedEdge* valid_edge = nullptr;
+    const DirectedEdge* directededge = pred;
+
+    for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid) {
+        // TODO Simplify into a helper function
+        // if no access is allowed (based on costing method),
+        // or if a complex restriction prevents transition onto this edge.
+        if (!costing->Allowed(
+                    directededge,
+                    edgelabels_forward[directededge->localedgeidx()], // TODO validate
+                    tile,
+                    edgeid,
+                    0,
+                    0
+                    ) ||
+                costing->Restricted(
+                    directededge,
+                    edgelabels_forward[directededge->localedgeidx()], // TODO validate
+                    edgelabels_forward, // TODO
+                    tile,
+                    edgeid,
+                    true,
+                    0, // TODO
+                    0 // TODO
+                    )) {
+          continue;
+        }
+        valid_edge = directededge;
+        ++num_valid_neighbors;
+    }
+
     // Count endnode's neighbors
-
     // If only one neighbor, check if opposing edge to directededge
-
-    return true;
+    if (num_valid_neighbors == 1) {
+        return pred->opp_local_idx() == valid_edge->localedgeidx();
+    }
+    return false;
 }
 
 constexpr uint64_t kInitialEdgeLabelCountBD = 1000000;
@@ -122,6 +162,7 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
   const GraphTile* tile = graphreader.GetGraphTile(node);
   if (tile == nullptr) {
     return;
+  }
   const NodeInfo* nodeinfo = tile->node(node);
   if (!costing_->Allowed(nodeinfo)) {
     return;
@@ -273,7 +314,7 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     // or if a complex restriction prevents transition onto this edge.
     if (!costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge, 0, 0) ||
         costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false) ||
-        is_derived_deadend(t2, directededge)) {
+        is_derived_deadend(t2, directededge, costing_, edgelabels_forward_)) {
       continue;
     }
 
