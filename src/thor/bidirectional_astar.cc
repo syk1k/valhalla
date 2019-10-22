@@ -188,13 +188,13 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
       continue;
     }
 
-    //bool is_deadend = is_derived_deadend(tile, directededge, costing_, edgelabels_forward_);
+    bool is_deadend = is_derived_deadend(tile, directededge, costing_, edgelabels_forward_);
     // Skip this edge if edge is permanently labeled (best path already found
     // to this directed edge), if no access is allowed (based on costing method),
     // or if a complex restriction prevents transition onto this edge.
     if (
          edge_status->set() == EdgeSet::kPermanent
-        || !costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) //&& !is_deadend)
+        || !(costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) && !is_deadend)
         || costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)
         ) {
       continue;
