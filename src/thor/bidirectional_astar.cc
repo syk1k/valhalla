@@ -29,7 +29,7 @@ bool is_derived_deadend(
     ) {
 
     const GraphTile* tile = graphreader.GetGraphTile(pred.edgeid());
-    const DirectedEdge* directededge = tile->directededge(pred.edgeid());
+    const DirectedEdge* pred_edge = tile->directededge(pred.edgeid());
     // TODO null check?
 
     // REVERSE do we need startnode instead of endnode for reverse search
@@ -41,22 +41,34 @@ bool is_derived_deadend(
     //}
     const NodeInfo* nodeinfo = tile->node(pred.endnode());
 
-    auto check_neighbors = [&graphreader, &edgelabels, &costing, directededge, &is_forward_search](const GraphTile*& tile_org, const GraphId& graph_id, const DirectedEdge*& valid_edge) {
+    auto check_neighbors = [&graphreader, &edgelabels, &costing, &pred, &is_forward_search](const GraphTile*& tile_org, const GraphId& graph_id, const DirectedEdge*& valid_edge) {
         uint16_t num_valid_neighbors = 0;
-
         // TODO REVERESE Does GetDirectedEdges not differentiate between outbound/inbound?
-        for (const auto& candidate_edge : tile_org->GetDirectedEdges(graph_id)) {
-            // REVERSE startnode instead of endnode
-            const GraphTile* tile = graphreader.GetGraphTile(candidate_edge.endnode());
-            if (tile == nullptr) {
-              continue;
+        for (const auto& outgoing_candidate_edge : tile_org->GetDirectedEdges(graph_id)) {
+            // TODO in reverse: X   grab the incoming edge
+            //                      rev_pred -> derive opposing edge
+            //                      call AllowReverse
+
+            const auto* candidate_edge = &outgoing_candidate_edge;
+            if (!is_forward_search) {
+                // In reverse search, we need to convert the outgoing edge
+                // into the incoming edge
+                const GraphId node = outgoing_candidate_edge.endnode();
+                const auto* tile = graphreader.GetGraphTile(node);
+                candidate_edge = tile->directededge(tile->node(node)->edge_index() + outgoing_candidate_edge.opp_index());
+
             }
-            const GraphId candidate_graph_id = is_forward_search ? candidate_edge.endnode(): graph_id;
+            // REVERSE startnode instead of endnode
+            const GraphTile* tile = graphreader.GetGraphTile(candidate_edge->endnode());
+            //if (tile == nullptr) {
+            //  continue;
+            //}
+            const GraphId candidate_graph_id = is_forward_search ? candidate_edge->endnode(): graph_id;
 
             tile = graphreader.GetGraphTile(candidate_graph_id);
-            if (tile == nullptr) {
-              continue;
-            }
+            //if (tile == nullptr) {
+            //  continue;
+            //}
             const NodeInfo* candidate_node_info = tile->node(candidate_graph_id);
             GraphId candidate_edge_id = {
                 candidate_graph_id.tileid(),
@@ -66,28 +78,49 @@ bool is_derived_deadend(
             // TODO Simplify into a helper function
             // if no access is allowed (based on costing method),
             // or if a complex restriction prevents transition onto this edge.
-            if (!costing->Allowed(
-                        &candidate_edge,
-                        edgelabels[candidate_edge.localedgeidx()], // TODO validate
+            bool is_allowed;
+            if (is_forward_search) {
+                is_allowed = costing->Allowed(
+                        candidate_edge,
+                        edgelabels[candidate_edge->localedgeidx()], // TODO validate
                         tile,
                         candidate_graph_id,
                         0,
                         0
-                        ) ||
-                    costing->Restricted(
-                        &candidate_edge,
-                        edgelabels[candidate_edge.localedgeidx()], // TODO validate
+                        );
+            } else {
+                const GraphTile* t2 =
+                    candidate_edge->leaves_tile() ? graphreader.GetGraphTile(candidate_edge->endnode()) : tile;
+                GraphId oppedge_graph_id = t2->GetOpposingEdgeId(candidate_edge);
+                const DirectedEdge* opp_edge = t2->directededge(oppedge_graph_id);
+
+                is_allowed = costing->AllowedReverse(
+                        candidate_edge,
+                        pred,
+                        opp_edge,
+                        t2,
+                        oppedge_graph_id,
+                        0,
+                        0);
+            }
+            bool is_restricted = costing->Restricted(
+                        candidate_edge,
+                        edgelabels[candidate_edge->localedgeidx()], // TODO validate
                         edgelabels, // TODO
                         tile,
                         candidate_edge_id,
                         true,
                         0, // TODO
                         0 // TODO
-                        )) {
+                        );
+            if (!is_allowed || is_restricted ) {
               continue;
             }
-            valid_edge = &candidate_edge;
+            valid_edge = candidate_edge;
             ++num_valid_neighbors;
+        }
+        if (num_valid_neighbors == 1) {
+            int x = 0;
         }
         return num_valid_neighbors;
     };
@@ -98,10 +131,10 @@ bool is_derived_deadend(
     // Count endnode's neighbors
     // Check edges on current level
     // REVERSE startnode/endnode?
-    //GraphId node_to_check = is_forward_search ? directededge->endnode() : tile->GetOpposingEdgeId(directededge);
+    //GraphId node_to_check = is_forward_search ? pred_edge->endnode() : tile->GetOpposingEdgeId(pred_edge);
     //GraphTile* tile_to_check = is_forward_search ? tile : ;
     //num_valid_neighbors += check_neighbors(tile_to_check, node_to_check, valid_edge);
-    num_valid_neighbors += check_neighbors(tile, directededge->endnode(), valid_edge);
+    num_valid_neighbors += check_neighbors(tile, pred_edge->endnode(), valid_edge);
 
     // Check edges on other levels
     for (const auto& sibling_node : tile->GetNodeTransitions(nodeinfo)) {
@@ -109,10 +142,14 @@ bool is_derived_deadend(
         num_valid_neighbors += check_neighbors(tile, sibling_node.endnode(), valid_edge);
     }
 
-    // If only one neighbor, check if opposing edge to directededge
+    // If only one neighbor, check if opposing edge to pred_edge
     if (num_valid_neighbors == 1) {
+        if (is_forward_search) {
+            return pred.opp_local_idx() == valid_edge->localedgeidx();
+        } else {
+            return pred.opp_local_idx() == valid_edge->localedgeidx();
+        }
         // REVERSE is this check the same in reverse search
-        return pred.opp_local_idx() == valid_edge->localedgeidx();
     } else {
         return false;
     }
@@ -250,7 +287,7 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
     // or if a complex restriction prevents transition onto this edge.
     if (
          edge_status->set() == EdgeSet::kPermanent
-        || !(costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) || !is_deadend)
+        || !(costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) && !is_deadend)
         || costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)
         ) {
       continue;
@@ -369,15 +406,13 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     if (t2 == nullptr) {
       continue;
     }
-    GraphId oppedge = t2->GetOpposingEdgeId(directededge);
-    const DirectedEdge* opp_edge = t2->directededge(oppedge);
+    GraphId oppedge_graph_id = t2->GetOpposingEdgeId(directededge);
+    const DirectedEdge* opp_edge = t2->directededge(oppedge_graph_id);
 
     // Skip this edge if no access is allowed (based on costing method)
     // or if a complex restriction prevents transition onto this edge.
     if (
-        (!costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge, 0, 0)
-            //&& !is_deadend
-        )
+        !(costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge_graph_id, 0, 0) && !is_deadend)
         || costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false)
         ) {
       continue;
@@ -412,15 +447,16 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
 
     // Add edge label, add to the adjacency list and set edge status
     uint32_t idx = edgelabels_reverse_.size();
-    edgelabels_reverse_.emplace_back(pred_idx, edgeid, oppedge, directededge, newcost, sortcost, dist,
+    edgelabels_reverse_.emplace_back(pred_idx, edgeid, oppedge_graph_id, directededge, newcost, sortcost, dist,
                                      mode_, tc,
                                      (pred.not_thru_pruning() || !directededge->not_thru()));
     adjacencylist_reverse_->add(idx);
     *es = {EdgeSet::kTemporary, idx};
 
     // setting this edge as reached, sending the opposing because this is the reverse tree
-    if (expansion_callback_)
-      expansion_callback_(graphreader, "bidirectional_astar", oppedge, "r", false);
+    if (expansion_callback_) {
+      expansion_callback_(graphreader, "bidirectional_astar", oppedge_graph_id, "r", false);
+    }
   }
 
   // Handle transitions - expand from the end node of each transition
