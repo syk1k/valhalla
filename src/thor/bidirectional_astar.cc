@@ -188,12 +188,15 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
       continue;
     }
 
+    //bool is_deadend = is_derived_deadend(tile, directededge, costing_, edgelabels_forward_);
     // Skip this edge if edge is permanently labeled (best path already found
     // to this directed edge), if no access is allowed (based on costing method),
     // or if a complex restriction prevents transition onto this edge.
-    if (edge_status->set() == EdgeSet::kPermanent ||
-        !costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) ||
-        costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)) {
+    if (
+         edge_status->set() == EdgeSet::kPermanent
+        || !costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) //&& !is_deadend)
+        || costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)
+        ) {
       continue;
     }
 
@@ -310,11 +313,15 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     GraphId oppedge = t2->GetOpposingEdgeId(directededge);
     const DirectedEdge* opp_edge = t2->directededge(oppedge);
 
+    //bool is_deadend = is_derived_deadend(t2, directededge, costing_, edgelabels_forward_);
     // Skip this edge if no access is allowed (based on costing method)
     // or if a complex restriction prevents transition onto this edge.
-    if (!costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge, 0, 0) ||
-        costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false) ||
-        is_derived_deadend(t2, directededge, costing_, edgelabels_forward_)) {
+    if (
+        (!costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge, 0, 0)
+            //&& !is_deadend
+        )
+        || costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false)
+        ) {
       continue;
     }
 
@@ -480,7 +487,6 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
 
     // Expand from the search direction with lower sort cost.
     if ((fwd_pred.sortcost() + cost_diff_) < rev_pred.sortcost()) {
-      // Expand forward - set to get next edge from forward adj. list on the next pass
       // Expand forward - set to get next edge from forward adj. list on the next pass
       expand_forward = true;
       expand_reverse = false;
