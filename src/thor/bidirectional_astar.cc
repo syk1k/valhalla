@@ -27,27 +27,36 @@ bool is_derived_deadend(
         const vector<sif::BDEdgeLabel> &edgelabels,
         bool is_forward_search
     ) {
-    const GraphTile* tile = graphreader.GetGraphTile(pred.edgeid(), tile_org);
+
+    const GraphTile* tile = graphreader.GetGraphTile(pred.edgeid());
     const DirectedEdge* directededge = tile->directededge(pred.edgeid());
     // TODO null check?
 
     // REVERSE do we need startnode instead of endnode for reverse search
-    GraphId graph_id;
-    if (is_forward_search) {
-        graph_id =  pred.endnode();
-    } else {
-        graph_id = pred.opp_edgeid();
-    }
-    const NodeInfo* nodeinfo = tile->node(graph_id);
+    //GraphId graph_id;
+    //if (is_forward_search) {
+    //    graph_id =  pred.edgeid();
+    //} else {
+    //    graph_id = pred.opp_edgeid();
+    //}
+    const NodeInfo* nodeinfo = tile->node(pred.endnode());
 
-    auto check_neighbors = [&graphreader, &tile_org, &edgelabels, &costing, directededge, &is_forward_search](const GraphId& graph_id, const DirectedEdge*& valid_edge) {
+    auto check_neighbors = [&graphreader, &edgelabels, &costing, directededge, &is_forward_search](const GraphTile*& tile_org, const GraphId& graph_id, const DirectedEdge*& valid_edge) {
         uint16_t num_valid_neighbors = 0;
 
-        // REVERESE Does GetDirectedEdges not differentiate between outbound/inbound?
+        // TODO REVERESE Does GetDirectedEdges not differentiate between outbound/inbound?
         for (const auto& candidate_edge : tile_org->GetDirectedEdges(graph_id)) {
             // REVERSE startnode instead of endnode
-            const GraphTile* tile = graphreader.GetGraphTile(candidate_edge.endnode(), tile_org);
-            GraphId candidate_graph_id = is_forward_search ? candidate_edge.endnode(): tile->GetOpposingEdgeId(directededge);
+            const GraphTile* tile = graphreader.GetGraphTile(candidate_edge.endnode());
+            if (tile == nullptr) {
+              continue;
+            }
+            const GraphId candidate_graph_id = is_forward_search ? candidate_edge.endnode(): graph_id;
+
+            tile = graphreader.GetGraphTile(candidate_graph_id);
+            if (tile == nullptr) {
+              continue;
+            }
             const NodeInfo* candidate_node_info = tile->node(candidate_graph_id);
             GraphId candidate_edge_id = {
                 candidate_graph_id.tileid(),
@@ -89,12 +98,15 @@ bool is_derived_deadend(
     // Count endnode's neighbors
     // Check edges on current level
     // REVERSE startnode/endnode?
-    GraphId node_to_check = is_forward_search ? directededge->endnode() : tile->GetOpposingEdgeId(directededge);
-    num_valid_neighbors += check_neighbors(node_to_check, valid_edge);
+    //GraphId node_to_check = is_forward_search ? directededge->endnode() : tile->GetOpposingEdgeId(directededge);
+    //GraphTile* tile_to_check = is_forward_search ? tile : ;
+    //num_valid_neighbors += check_neighbors(tile_to_check, node_to_check, valid_edge);
+    num_valid_neighbors += check_neighbors(tile, directededge->endnode(), valid_edge);
 
     // Check edges on other levels
     for (const auto& sibling_node : tile->GetNodeTransitions(nodeinfo)) {
-        num_valid_neighbors += check_neighbors(sibling_node.endnode(), valid_edge);
+        tile = graphreader.GetGraphTile(sibling_node.endnode());
+        num_valid_neighbors += check_neighbors(tile, sibling_node.endnode(), valid_edge);
     }
 
     // If only one neighbor, check if opposing edge to directededge
@@ -323,7 +335,7 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
   }
 
   // Check if the node in question is a deadend
-  bool is_deadend = is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_forward_, false);
+  bool is_deadend = is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_reverse_, false);
 
   // Expand from end node in reverse direction.
   uint32_t shortcuts = 0;
