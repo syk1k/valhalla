@@ -1,6 +1,7 @@
 #include "thor/bidirectional_astar.h"
 #include "baldr/datetime.h"
 #include "baldr/graphid.h"
+#include "baldr/graphtile.h"
 #include "midgard/logging.h"
 #include <algorithm>
 #include <map>
@@ -13,54 +14,70 @@ using std::vector;
 namespace valhalla {
 namespace thor {
 
-template <typename edge_labels_container_t>
+//template <typename edge_labels_container_t>
 bool is_derived_deadend(
-        const GraphTile*& tile,
-        const DirectedEdge*& pred,
+        GraphReader& graphreader,
+        const GraphTile*& tile_org,
+        const BDEdgeLabel& pred,
         const std::shared_ptr<sif::DynamicCost> &costing,
-        const edge_labels_container_t &edgelabels_forward
-        //const vector<sif::BDEdgeLabel> &edgelabels_forward
+        //const edge_labels_container_t &edgelabels_forward
+        const vector<sif::BDEdgeLabel> &edgelabels_forward
     ) {
-    const GraphId graph_id = pred->endnode();
+    const GraphTile* tile = graphreader.GetGraphTile(pred.edgeid(), tile_org);
+    const DirectedEdge* directededge = tile->directededge(pred.edgeid());
+    // TODO null check?
+
+    const GraphId graph_id = pred.endnode();
     const NodeInfo* nodeinfo = tile->node(graph_id);
 
-    GraphId edgeid = {graph_id.tileid(), graph_id.level(), nodeinfo->edge_index()};
+    //GraphId edgeid = {graph_id.tileid(), graph_id.level(), nodeinfo->edge_index()};
     uint16_t num_valid_neighbors = 0;
     const DirectedEdge* valid_edge = nullptr;
-    const DirectedEdge* directededge = pred;
 
-    for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid) {
+    // Check edges on other nodes
+    for (const auto& sibling_node : tile->GetNodeTransitions(nodeinfo)) {
+        // TODO Same check here for all the edges on other levels
+    }
+
+    for (const auto& candidate_edge : tile->GetDirectedEdges(directededge->endnode())) {
+        const GraphId candidate_graph_id = candidate_edge.endnode();
+        const NodeInfo* candidate_node_info = tile->node(candidate_graph_id);
+        GraphId candidate_edge_id = {
+            candidate_graph_id.tileid(),
+            candidate_graph_id.level(),
+            candidate_node_info->edge_index()
+        };
         // TODO Simplify into a helper function
         // if no access is allowed (based on costing method),
         // or if a complex restriction prevents transition onto this edge.
         if (!costing->Allowed(
-                    directededge,
-                    edgelabels_forward[directededge->localedgeidx()], // TODO validate
+                    &candidate_edge,
+                    edgelabels_forward[candidate_edge.localedgeidx()], // TODO validate
                     tile,
-                    edgeid,
+                    candidate_graph_id,
                     0,
                     0
                     ) ||
                 costing->Restricted(
-                    directededge,
-                    edgelabels_forward[directededge->localedgeidx()], // TODO validate
+                    &candidate_edge,
+                    edgelabels_forward[candidate_edge.localedgeidx()], // TODO validate
                     edgelabels_forward, // TODO
                     tile,
-                    edgeid,
+                    candidate_edge_id,
                     true,
                     0, // TODO
                     0 // TODO
                     )) {
           continue;
         }
-        valid_edge = directededge;
+        valid_edge = &candidate_edge;
         ++num_valid_neighbors;
     }
 
     // Count endnode's neighbors
     // If only one neighbor, check if opposing edge to directededge
     if (num_valid_neighbors == 1) {
-        return pred->opp_local_idx() == valid_edge->localedgeidx();
+        return pred.opp_local_idx() == valid_edge->localedgeidx();
     }
     return false;
 }
@@ -168,11 +185,15 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
     return;
   }
 
+  // Check if the node in question is a deadend
+  bool is_deadend = is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_forward_);
+
   // Expand from end node in forward direction.
   uint32_t shortcuts = 0;
   GraphId edgeid = {node.tileid(), node.level(), nodeinfo->edge_index()};
   EdgeStatusInfo* edge_status = edgestatus_forward_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(edgeid);
+
   for (uint32_t i = 0; i < nodeinfo->edge_count(); ++i, ++directededge, ++edgeid, ++edge_status) {
     // Skip shortcut edges until we have stopped expanding on the next level. Use regular
     // edges while still expanding on the next level since we can still transition down to
@@ -188,13 +209,12 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
       continue;
     }
 
-    bool is_deadend = is_derived_deadend(tile, directededge, costing_, edgelabels_forward_);
     // Skip this edge if edge is permanently labeled (best path already found
     // to this directed edge), if no access is allowed (based on costing method),
     // or if a complex restriction prevents transition onto this edge.
     if (
          edge_status->set() == EdgeSet::kPermanent
-        || !(costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) && !is_deadend)
+        || !(costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) || !is_deadend)
         || costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)
         ) {
       continue;
@@ -278,6 +298,9 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     return;
   }
 
+  // Check if the node in question is a deadend
+  bool is_deadend = is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_forward_);
+
   // Expand from end node in reverse direction.
   uint32_t shortcuts = 0;
   GraphId edgeid = {graph_id.tileid(), graph_id.level(), nodeinfo->edge_index()};
@@ -313,7 +336,6 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
     GraphId oppedge = t2->GetOpposingEdgeId(directededge);
     const DirectedEdge* opp_edge = t2->directededge(oppedge);
 
-    //bool is_deadend = is_derived_deadend(t2, directededge, costing_, edgelabels_forward_);
     // Skip this edge if no access is allowed (based on costing method)
     // or if a complex restriction prevents transition onto this edge.
     if (
