@@ -187,7 +187,7 @@ void TearDown() {
 int main() {
   test::suite suite("bidirectional-a-star-whitelion");
 
-  //suite.test(TEST_CASE(test_deadend));
+  suite.test(TEST_CASE(test_deadend));
 
   return suite.tear_down();
 }
