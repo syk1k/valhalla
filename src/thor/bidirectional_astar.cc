@@ -57,22 +57,24 @@ bool is_derived_deadend(
                 const auto* tile = graphreader.GetGraphTile(node);
                 candidate_edge = tile->directededge(tile->node(node)->edge_index() + outgoing_candidate_edge.opp_index());
 
+                // TODO do for forward
+                auto edge_id = tile->header()->graphid();
+                edge_id.set_id(candidate_edge - tile->directededge(0));
             }
             // REVERSE startnode instead of endnode
             const GraphTile* tile = graphreader.GetGraphTile(candidate_edge->endnode());
             //if (tile == nullptr) {
             //  continue;
             //}
-            const GraphId candidate_graph_id = is_forward_search ? candidate_edge->endnode(): graph_id;
 
-            tile = graphreader.GetGraphTile(candidate_graph_id);
+            tile = graphreader.GetGraphTile(graph_id);
             //if (tile == nullptr) {
             //  continue;
             //}
-            const NodeInfo* candidate_node_info = tile->node(candidate_graph_id);
-            GraphId candidate_edge_id = {
-                candidate_graph_id.tileid(),
-                candidate_graph_id.level(),
+            const NodeInfo* candidate_node_info = tile->node(graph_id);
+            GraphId candidate_edge_id = { // TODO Remove this
+                graph_id.tileid(),
+                graph_id.level(),
                 candidate_node_info->edge_index()
             };
             // TODO Simplify into a helper function
@@ -84,18 +86,18 @@ bool is_derived_deadend(
                         candidate_edge,
                         edgelabels[candidate_edge->localedgeidx()], // TODO validate
                         tile,
-                        candidate_graph_id,
+                        graph_id,
                         0,
                         0
                         );
             } else {
                 const GraphTile* t2 =
-                    candidate_edge->leaves_tile() ? graphreader.GetGraphTile(candidate_edge->endnode()) : tile;
+                    outgoing_candidate_edge.leaves_tile() ? graphreader.GetGraphTile(outgoing_candidate_edge.endnode()) : tile;
                 GraphId oppedge_graph_id = t2->GetOpposingEdgeId(candidate_edge);
                 const DirectedEdge* opp_edge = t2->directededge(oppedge_graph_id);
 
                 is_allowed = costing->AllowedReverse(
-                        candidate_edge,
+                        &outgoing_candidate_edge,
                         pred,
                         opp_edge,
                         t2,
@@ -108,7 +110,7 @@ bool is_derived_deadend(
                         edgelabels[candidate_edge->localedgeidx()], // TODO validate
                         edgelabels, // TODO
                         tile,
-                        candidate_edge_id,
+                        candidate_edge_id, // TODO this is one level too deep
                         true,
                         0, // TODO
                         0 // TODO
