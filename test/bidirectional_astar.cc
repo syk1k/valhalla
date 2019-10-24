@@ -8,6 +8,7 @@
 #include "loki/worker.h"
 #include "midgard/logging.h"
 #include "midgard/util.h"
+#include "mjolnir/pbfgraphparser.h"
 #include "odin/worker.h"
 #include "sif/autocost.h"
 #include "thor/astar.h"
@@ -22,6 +23,10 @@ using namespace valhalla::loki;
 using namespace valhalla::baldr;
 using namespace valhalla::midgard;
 using namespace valhalla::tyr;
+
+#if !defined(VALHALLA_SOURCE_DIR)
+#define VALHALLA_SOURCE_DIR
+#endif
 
 namespace {
 
@@ -93,6 +98,11 @@ struct route_tester {
 };
 
 void test_deadend() {
+  auto osmdata = valhalla::mjolnir::PBFGraphParser::Parse(get_conf().get_child("mjolnir"),
+                                       {VALHALLA_SOURCE_DIR
+                                       "test/data/whitelion_bristol_uk.osm.pbf"}, ways_file,
+                                       way_nodes_file, access_file, from_restriction_file,
+                                       to_restriction_file, bss_file);
   route_tester tester;
   std::string request =
       R"({"locations":[{"lat":51.45562646682483,"lon":-2.5952598452568054},{"lat":51.455143447135974,"lon":-2.5958767533302307}],"costing":"auto"})";
@@ -130,56 +140,7 @@ void test_deadend() {
   }
 }
 
-// void load_whitelion_uk_pbf() {
-//  auto conf = get_conf();
-//  auto osmdata = PBFGraphParser::Parse(conf.get_child("mjolnir"),
-//                                       {VALHALLA_SOURCE_DIR
-//                                       "test/data/whitelion_bristol_uk.osm.pbf"}, ways_file,
-//                                       way_nodes_file, access_file, from_restriction_file,
-//                                       to_restriction_file, bss_file);
-//}
-
-// std::shared_ptr<DynamicCost> create_cost_model() {
-//  CostFactory<DynamicCost> factory;
-//  //factory.RegisterStandardCostingModels();
-//  valhalla::Options options;
-//  std::shared_ptr<DynamicCost> cost = factory.Create(valhalla::Costing::auto_, options);
-//  return cost;
-//}
-
-// void TestDeadend() {
-//  load_whitelion_uk_pbf();
-
-//  // Setup start/end
-//  valhalla::LatLng PointLL start_pos_bell_lane(-2.5959071516444965, 51.4551016631857);
-//  PointLL end_pos_side_street(-2.5952312349727436, 51.45570000570632);
-//  const Location _origin = Location(start_pos_bell_lane);
-//  const Location _destination = Location(end_pos_side_street);
-//  valhalla::Location origin;
-
-//  auto conf = get_config();
-//  GraphReader reader(conf);
-
-//  valhalla::thor::BidirectionalAStar bidir_astar;
-//  auto paths =
-//      bidir_astar.GetBestPath(
-//          origin,
-//          end_pos_side_street,
-//          reader,
-//          create_cost_model(),
-//          valhalla::sif::TravelMode::kDrive,
-//          valhalla::Options::default_instance());
-
-//              //valhalla::Location& origin,
-//              //valhalla::Location& destination,
-
-//}
-
 void TearDown() {
-  // boost::filesystem::remove(ways_file);
-  // boost::filesystem::remove(way_nodes_file);
-  // boost::filesystem::remove(access_file);
-  // boost::filesystem::remove(from_restriction_file);
   // boost::filesystem::remove(to_restriction_file);
 }
 
