@@ -25,6 +25,9 @@ bool is_derived_deadend(GraphReader& graphreader,
                         // const edge_labels_container_t &edgelabels_forward
                         const vector<sif::BDEdgeLabel>& edgelabels,
                         bool is_forward_search) {
+  // Contracts:
+  // 1. Tile should not be nullptr
+  // 2. tile should contain pred edge
 
   auto check_neighbors = [&graphreader, &edgelabels, &costing, &pred, edge_id,
                           &is_forward_search](const GraphTile*& tile_org, const GraphId& node_id,
@@ -37,7 +40,9 @@ bool is_derived_deadend(GraphReader& graphreader,
       // GraphId edge_id = {tile_org.id(), pred.endnode().level(), pred.edgeid()};
       bool is_restricted = costing->Restricted(&outgoing_candidate_edge, pred, edgelabels, tile_org,
                                                edge_id, is_forward_search, 0, 0);
-      if (is_restricted) {}
+      if (is_restricted) {
+        continue;
+      }
       GraphId edgeid = tile_org->header()->graphid();
 
       const DirectedEdge* candidate_edge = &outgoing_candidate_edge;
@@ -51,7 +56,7 @@ bool is_derived_deadend(GraphReader& graphreader,
             outgoing_candidate_edge.leaves_tile()
                 ? graphreader.GetGraphTile(outgoing_candidate_edge.endnode())
                 : tile_org;
-        GraphId incoming_edge_id = outgoing_candidate_tile->GetOpposingEdgeId(candidate_edge);
+        GraphId incoming_edge_id = tile_org->GetOpposingEdgeId(candidate_edge);
         const DirectedEdge* incoming_candidate_edge =
             outgoing_candidate_tile->directededge(incoming_edge_id);
 
