@@ -8,7 +8,7 @@
 #include "loki/worker.h"
 #include "midgard/logging.h"
 #include "midgard/util.h"
-#include "mjolnir/pbfgraphparser.h"
+#include "mjolnir/util.h"
 #include "odin/worker.h"
 #include "sif/autocost.h"
 #include "thor/astar.h"
@@ -98,11 +98,9 @@ struct route_tester {
 };
 
 void test_deadend() {
-  auto osmdata = valhalla::mjolnir::PBFGraphParser::Parse(get_conf().get_child("mjolnir"),
-                                       {VALHALLA_SOURCE_DIR
-                                       "test/data/whitelion_bristol_uk.osm.pbf"}, ways_file,
-                                       way_nodes_file, access_file, from_restriction_file,
-                                       to_restriction_file, bss_file);
+  auto osmdata =
+      valhalla::mjolnir::build_tile_set(get_conf(), {VALHALLA_SOURCE_DIR
+                                                     "test/data/whitelion_bristol_uk.osm.pbf"});
   route_tester tester;
   std::string request =
       R"({"locations":[{"lat":51.45562646682483,"lon":-2.5952598452568054},{"lat":51.455143447135974,"lon":-2.5958767533302307}],"costing":"auto"})";
