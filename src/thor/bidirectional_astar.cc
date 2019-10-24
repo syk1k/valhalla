@@ -33,20 +33,11 @@ bool is_derived_deadend(GraphReader& graphreader,
     for (const auto& outgoing_candidate_edge : tile_org->GetDirectedEdges(pred.endnode())) {
 
       // TODO Can we derive edge_id rather than pass it in?
-      //auto edge_id = {tile_org->id(), tile_org->level, pred.edgeid()};
-      //GraphId edge_id = {tile_org.id(), pred.endnode().level(), pred.edgeid()};
-      bool is_restricted = costing->Restricted(&outgoing_candidate_edge,
-                                               pred,
-                                               edgelabels,
-                                               tile_org,
-                                               edge_id,
-                                               is_forward_search,
-                                               0,
-                                               0
-      );
-      if (is_restricted) {
-
-      }
+      // auto edge_id = {tile_org->id(), tile_org->level, pred.edgeid()};
+      // GraphId edge_id = {tile_org.id(), pred.endnode().level(), pred.edgeid()};
+      bool is_restricted = costing->Restricted(&outgoing_candidate_edge, pred, edgelabels, tile_org,
+                                               edge_id, is_forward_search, 0, 0);
+      if (is_restricted) {}
       GraphId edgeid = tile_org->header()->graphid();
 
       const DirectedEdge* candidate_edge = &outgoing_candidate_edge;
@@ -56,18 +47,16 @@ bool is_derived_deadend(GraphReader& graphreader,
       } else {
         // In reverse search, we need to convert the outgoing edge
         // into the incoming edge
-        const GraphTile* outgoing_candidate_tile = outgoing_candidate_edge.leaves_tile()
-                                  ? graphreader.GetGraphTile(outgoing_candidate_edge.endnode())
-                                  : tile_org;
+        const GraphTile* outgoing_candidate_tile =
+            outgoing_candidate_edge.leaves_tile()
+                ? graphreader.GetGraphTile(outgoing_candidate_edge.endnode())
+                : tile_org;
         GraphId incoming_edge_id = outgoing_candidate_tile->GetOpposingEdgeId(candidate_edge);
-        const DirectedEdge* incoming_candidate_edge = outgoing_candidate_tile->directededge(incoming_edge_id);
+        const DirectedEdge* incoming_candidate_edge =
+            outgoing_candidate_tile->directededge(incoming_edge_id);
 
-        is_allowed = costing->AllowedReverse(
-                &outgoing_candidate_edge,
-                pred,
-                incoming_candidate_edge,
-                outgoing_candidate_tile,
-                incoming_edge_id, 0, 0);
+        is_allowed = costing->AllowedReverse(&outgoing_candidate_edge, pred, incoming_candidate_edge,
+                                             outgoing_candidate_tile, incoming_edge_id, 0, 0);
       }
       // if no access is allowed (based on costing method),
       // or if a complex restriction prevents transition onto this edge.

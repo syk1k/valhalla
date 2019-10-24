@@ -130,15 +130,16 @@ void test_deadend() {
   }
 }
 
-//void load_whitelion_uk_pbf() {
+// void load_whitelion_uk_pbf() {
 //  auto conf = get_conf();
 //  auto osmdata = PBFGraphParser::Parse(conf.get_child("mjolnir"),
-//                                       {VALHALLA_SOURCE_DIR "test/data/whitelion_bristol_uk.osm.pbf"},
-//                                       ways_file, way_nodes_file, access_file, from_restriction_file,
+//                                       {VALHALLA_SOURCE_DIR
+//                                       "test/data/whitelion_bristol_uk.osm.pbf"}, ways_file,
+//                                       way_nodes_file, access_file, from_restriction_file,
 //                                       to_restriction_file, bss_file);
 //}
 
-//std::shared_ptr<DynamicCost> create_cost_model() {
+// std::shared_ptr<DynamicCost> create_cost_model() {
 //  CostFactory<DynamicCost> factory;
 //  //factory.RegisterStandardCostingModels();
 //  valhalla::Options options;
@@ -146,7 +147,7 @@ void test_deadend() {
 //  return cost;
 //}
 
-//void TestDeadend() {
+// void TestDeadend() {
 //  load_whitelion_uk_pbf();
 
 //  // Setup start/end
@@ -175,11 +176,11 @@ void test_deadend() {
 //}
 
 void TearDown() {
-  //boost::filesystem::remove(ways_file);
-  //boost::filesystem::remove(way_nodes_file);
-  //boost::filesystem::remove(access_file);
-  //boost::filesystem::remove(from_restriction_file);
-  //boost::filesystem::remove(to_restriction_file);
+  // boost::filesystem::remove(ways_file);
+  // boost::filesystem::remove(way_nodes_file);
+  // boost::filesystem::remove(access_file);
+  // boost::filesystem::remove(from_restriction_file);
+  // boost::filesystem::remove(to_restriction_file);
 }
 
 } // namespace
