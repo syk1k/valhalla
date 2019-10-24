@@ -14,6 +14,7 @@
 #include "thor/astar.h"
 #include "thor/worker.h"
 #include <boost/property_tree/ptree.hpp>
+#include <boost/algorithm/string/join.hpp>
 
 using namespace valhalla;
 using namespace valhalla::thor;
@@ -116,36 +117,42 @@ void test_deadend() {
 
   auto response = tester.test(request);
 
-  //const auto& legs = response.trip().routes(0).legs();
-  //const auto& directions = response.directions().routes(0).legs();
+  const auto& legs = response.trip().routes(0).legs();
+  const auto& directions = response.directions().routes(0).legs();
 
-  //if (legs.size() != 2 || directions.size() != 2) {
-  //  throw std::logic_error("Should have two legs with two sets of directions");
-  //}
+  if (legs.size() != 1) {
+    throw std::logic_error("Should have 1 leg");
+  }
 
-  //std::vector<std::string> names;
-  //for (const auto& d : directions) {
-  //  for (const auto& m : d.maneuver()) {
-  //    std::string name;
-  //    for (const auto& n : m.street_name()) {
-  //      name += n.value() + " ";
-  //    }
-  //    if (!name.empty()) {
-  //      name.pop_back();
-  //    }
-  //    names.push_back(name);
-  //    if (m.type() == DirectionsLeg_Maneuver_Type_kUturnRight ||
-  //        m.type() == DirectionsLeg_Maneuver_Type_kUturnLeft) {
-  //      throw std::logic_error("Should not encounter any u-turns");
-  //    }
-  //  }
-  //}
+  std::vector<std::string> names;
+  bool found_uturn = false;
 
-  //if (names != std::vector<std::string>{"Korianderstraat", "Maanzaadstraat", "", "Maanzaadstraat",
-  //                                      "Korianderstraat", ""}) {
-  //  throw std::logic_error(
-  //      "Should be a destination at the midpoint and reverse the route for the second leg");
-  //}
+  for (const auto& d : directions) {
+    for (const auto& m : d.maneuver()) {
+      std::string name;
+      for (const auto& n : m.street_name()) {
+        name += n.value() + " ";
+      }
+      if (!name.empty()) {
+        name.pop_back();
+      }
+      names.push_back(name);
+      if (m.type() == DirectionsLeg_Maneuver_Type_kUturnRight ||
+          m.type() == DirectionsLeg_Maneuver_Type_kUturnLeft) {
+        found_uturn = true;
+      }
+    }
+  }
+
+  if (!found_uturn) {
+    throw std::logic_error("We did not find the expected u-turn");
+  }
+
+  if (names != std::vector<std::string>{"fill in me", "when ready"}) {
+    throw std::logic_error(
+        "Incorrect route, got: "+boost::algorithm::join(names, ", ")
+        );
+  }
 }
 
 void TearDown() {
