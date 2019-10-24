@@ -1,6 +1,10 @@
 #include "test.h"
 #include <cstdint>
 
+// the utility wrapper around rapidjson parses into a boost::ptree which preserves
+// order. We are comparing json which is unordered so lets skip the rapidjson wrapper
+#include <rapidjson/document.h>
+
 #include "baldr/rapidjson_utils.h"
 #include "midgard/logging.h"
 #include <boost/property_tree/ptree.hpp>
@@ -386,8 +390,9 @@ void run_requests(const std::vector<http_request_t>& requests,
       client(context, "ipc:///tmp/test_loki_server",
              [&requests, &request, &request_str]() {
                // we dont have any more requests so bail
-               if (request == requests.cend())
+               if (request == requests.cend()) {
                  return std::make_pair<const void*, size_t>(nullptr, 0);
+               }
                // get the string of bytes to send formatted for http protocol
                request_str = request->to_string();
                // LOG_INFO("Loki Test Request :: " + request_str + '\n');
@@ -396,15 +401,21 @@ void run_requests(const std::vector<http_request_t>& requests,
              },
              [&requests, &request, &responses, &success_count](const void* data, size_t size) {
                auto response = http_response_t::from_string(static_cast<const char*>(data), size);
-               if (response.code != responses[request - requests.cbegin() - 1].first)
+               if (response.code != responses[request - requests.cbegin() - 1].first) {
                  throw std::runtime_error(
                      "Expected Response Code: " +
                      std::to_string(responses[request - requests.cbegin() - 1].first) +
                      ", Actual Response Code: " + std::to_string(response.code));
-               if (response.body != responses[request - requests.cbegin() - 1].second)
+               }
+
+               rapidjson::Document response_json, expected_json;
+               response_json.Parse(response.body);
+               expected_json.Parse(responses[request - requests.cbegin() - 1].second);
+               if (response_json != expected_json) {
                  throw std::runtime_error(
-                     "Expected Response: " + responses[request - requests.cbegin() - 1].second +
-                     ", Actual Response: " + response.body);
+                     "\nExpected Response: " + responses[request - requests.cbegin() - 1].second +
+                     "\n, Actual Response: " + response.body);
+               }
 
                ++success_count;
                return request != requests.cend();
