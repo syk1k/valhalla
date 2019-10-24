@@ -13,8 +13,8 @@
 #include "sif/autocost.h"
 #include "thor/astar.h"
 #include "thor/worker.h"
-#include <boost/property_tree/ptree.hpp>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 using namespace valhalla;
 using namespace valhalla::thor;
@@ -109,7 +109,7 @@ void test_deadend() {
   // TODO The below call builds the tiles, but the test fails when this runs
   // test passes the _next_ time after tiles were built...
   // Disk syncing issues? Race condition?
-  //build_tiles();
+  // build_tiles();
 
   route_tester tester;
   std::string request =
@@ -149,9 +149,7 @@ void test_deadend() {
   }
 
   if (names != std::vector<std::string>{"fill in me", "when ready"}) {
-    throw std::logic_error(
-        "Incorrect route, got: "+boost::algorithm::join(names, ", ")
-        );
+    throw std::logic_error("Incorrect route, got: " + boost::algorithm::join(names, ", "));
   }
 }
 

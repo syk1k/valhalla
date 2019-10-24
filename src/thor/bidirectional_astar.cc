@@ -20,7 +20,7 @@ namespace thor {
 bool is_derived_deadend(GraphReader& graphreader,
                         const GraphTile*& tile_org,
                         const BDEdgeLabel& pred,
-                        //const GraphId edge_id,
+                        // const GraphId edge_id,
                         const std::shared_ptr<sif::DynamicCost>& costing,
                         // const edge_labels_container_t &edgelabels_forward
                         const vector<sif::BDEdgeLabel>& edgelabels,
@@ -40,7 +40,7 @@ bool is_derived_deadend(GraphReader& graphreader,
 
       bool is_restricted = costing->Restricted(&outgoing_candidate_edge, pred, edgelabels, tile_org,
                                                edge_id, is_forward_search, 0, 0);
-      //GraphId edgeid = tile_org->header()->graphid();
+      // GraphId edgeid = tile_org->header()->graphid();
 
       const DirectedEdge* candidate_edge = &outgoing_candidate_edge;
       bool is_allowed;
@@ -213,8 +213,7 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
   GraphId edgeid = {node.tileid(), node.level(), nodeinfo->edge_index()};
 
   // Check if the node in question is a deadend
-  bool is_deadend =
-      is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_forward_, true);
+  bool is_deadend = is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_forward_, true);
 
   EdgeStatusInfo* edge_status = edgestatus_forward_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(edgeid);
@@ -326,8 +325,7 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
   GraphId edgeid = {graph_id.tileid(), graph_id.level(), nodeinfo->edge_index()};
 
   // Check if the node in question is a deadend
-  bool is_deadend =
-      is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_reverse_, false);
+  bool is_deadend = is_derived_deadend(graphreader, tile, pred, costing_, edgelabels_reverse_, false);
 
   EdgeStatusInfo* es = edgestatus_reverse_.GetPtr(edgeid, tile);
   const DirectedEdge* directededge = tile->directededge(edgeid);
