@@ -125,7 +125,7 @@ void test_deadend() {
   }
 
   std::vector<std::string> names;
-  bool found_uturn = false;
+  std::string uturn_street;
 
   for (const auto& d : directions) {
     for (const auto& m : d.maneuver()) {
@@ -136,20 +136,29 @@ void test_deadend() {
       if (!name.empty()) {
         name.pop_back();
       }
-      names.push_back(name);
+      bool is_uturn = false;
       if (m.type() == DirectionsLeg_Maneuver_Type_kUturnRight ||
           m.type() == DirectionsLeg_Maneuver_Type_kUturnLeft) {
-        found_uturn = true;
+        is_uturn = true;
+        uturn_street = name;
       }
+      names.push_back(name);
     }
   }
 
-  if (!found_uturn) {
-    throw std::logic_error("We did not find the expected u-turn");
+  auto correct_route = std::vector<std::string>{"Bell Lane",
+                                                "Small Street",
+                                                "Quay Street",
+                                                "Quay Street",
+                                                "Small Street",
+                                                "",
+                                                ""};
+  if (names != correct_route) {
+    throw std::logic_error("Incorrect route, got: \n" + boost::algorithm::join(names, ", ") +
+                           ", expected: \n" + boost::algorithm::join(correct_route, ", "));
   }
-
-  if (names != std::vector<std::string>{"fill in me", "when ready"}) {
-    throw std::logic_error("Incorrect route, got: " + boost::algorithm::join(names, ", "));
+  if (uturn_street != "Quay Street") {
+    throw std::logic_error("We did not find the expected u-turn");
   }
 }
 

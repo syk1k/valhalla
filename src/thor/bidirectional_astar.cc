@@ -81,28 +81,25 @@ bool is_derived_deadend(GraphReader& graphreader,
 
   // Count endnode's neighbors
   // Check edges on current level
-  // REVERSE startnode/endnode?
-  // GraphId node_to_check = is_forward_search ? pred_edge->endnode() :
-  // tile->GetOpposingEdgeId(pred_edge); GraphTile* tile_to_check = is_forward_search ? tile : ;
   num_valid_neighbors += check_neighbors(tile_org, pred.endnode(), valid_edge);
 
-  // Check edges on other levels
+  // TODO Enable Check edges on other levels
   for (const auto& sibling_node : tile_org->GetNodeTransitions(pred.endnode())) {
     const GraphTile* tile = graphreader.GetGraphTile(sibling_node.endnode());
     num_valid_neighbors += check_neighbors(tile, sibling_node.endnode(), valid_edge);
   }
 
-  // If only one neighbor, check if opposing edge to pred_edge
-  if (num_valid_neighbors == 1) {
-    if (is_forward_search) {
-      return pred.opp_local_idx() == valid_edge->localedgeidx();
-    } else {
-      return pred.opp_local_idx() == valid_edge->localedgeidx();
-    }
-    // REVERSE is this check the same in reverse search
-  } else {
-    return false;
-  }
+  return num_valid_neighbors == 1;
+  //// If only one neighbor, check if opposing edge to pred_edge
+  // if (num_valid_neighbors == 1) {
+  //  if (is_forward_search) {
+  //    return pred.opp_local_idx() == valid_edge->localedgeidx();
+  //  } else {
+  //    return pred.opp_local_idx() == valid_edge->localedgeidx();
+  //  }
+  //} else {
+  //  return false;
+  //}
 }
 
 constexpr uint64_t kInitialEdgeLabelCountBD = 1000000;
@@ -236,9 +233,12 @@ void BidirectionalAStar::ExpandForward(GraphReader& graphreader,
     // Skip this edge if edge is permanently labeled (best path already found
     // to this directed edge), if no access is allowed (based on costing method),
     // or if a complex restriction prevents transition onto this edge.
-    if (edge_status->set() == EdgeSet::kPermanent ||
-        !(costing_->Allowed(directededge, pred, tile, edgeid, 0, 0) && !is_deadend) ||
-        costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true)) {
+    bool is_allowed = costing_->Allowed(directededge, pred, tile, edgeid, 0, 0);
+    bool is_uturn = pred.opp_local_idx() == directededge->localedgeidx();
+    bool is_restricted =
+        costing_->Restricted(directededge, pred, edgelabels_forward_, tile, edgeid, true);
+    if (edge_status->set() == EdgeSet::kPermanent || !(is_allowed && (!is_uturn || is_deadend)) ||
+        is_restricted) {
       continue;
     }
 
@@ -361,9 +361,12 @@ void BidirectionalAStar::ExpandReverse(GraphReader& graphreader,
 
     // Skip this edge if no access is allowed (based on costing method)
     // or if a complex restriction prevents transition onto this edge.
-    if (!(costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge_graph_id, 0, 0) &&
-          !is_deadend) ||
-        costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false)) {
+    bool is_allowed =
+        costing_->AllowedReverse(directededge, pred, opp_edge, t2, oppedge_graph_id, 0, 0);
+    bool is_restricted =
+        costing_->Restricted(directededge, pred, edgelabels_reverse_, tile, edgeid, false);
+    bool is_uturn = pred.opp_local_idx() == directededge->localedgeidx();
+    if (!(is_allowed && (!is_uturn || is_deadend)) || is_restricted) {
       continue;
     }
 
