@@ -253,6 +253,44 @@ std::vector<MatchResult> FindMatchResults(const MapMatcher& mapmatcher,
   return results;
 }
 
+// Calculate a confidence score out of 1 for the match.
+//
+// Factors that influence confidence are:
+// - `absolute_distance_factor`: distance from input point to selected candidate edge. Distance of 0
+// is a perfect confidence score.
+// - `relative_distance_factor`: distance of selected candidate edge relative to all other candidate
+// edges. If there is only one candidate edge this is a perfect confidence score. Many candidates with
+// similar distance lead to a worse confidence.
+// - `absolute_transition_factor`: distance from one state to the next. Shorter distances between
+// states give better confidence.
+// - `relative_transition_factor`: distance from one state to all other candidate states. If there is
+// only one candidate state transition this is high confidence. Many candidate state transitions lead
+// to a worse confidence.
+//
+double CalculateConfidence(const MapMatcher& mapmatcher, const std::vector<StateId>& stateids) {
+  double total_candidates_sq_distance = 0.f;
+  double total_winner_sq_distance = 0.f;
+  for (StateId::Time time = 0; time < stateids.size(); time++) {
+    auto column = mapmatcher.state_container().column(stateids[time].time());
+
+    for (auto state : column) {
+      for (auto edge : state.candidate().edges)
+        total_candidates_sq_distance += edge.distance;
+    }
+
+    auto winner_sq_distance =
+        mapmatcher.state_container().state(stateids[time]).candidate().edges[0].distance;
+
+    total_winner_sq_distance += winner_sq_distance;
+  }
+
+  double relative_distance_factor = (total_winner_sq_distance / total_candidates_sq_distance);
+
+  return 1 - (relative_distance_factor) /* + absolute_distance_factor + relative_transition_factor +
+                                     absolute_transition_factor */
+      ;
+}
+
 struct path_t {
   path_t(const std::vector<EdgeSegment>& segments) {
     edges.reserve(segments.size());
@@ -586,6 +624,9 @@ std::vector<MatchResults> MapMatcher::OfflineMatch(const std::vector<Measurement
     // Get the match result for each of the states
     auto results = FindMatchResults(*this, original_state_ids);
 
+    // Calculate a confidence score for the match
+    auto confidence_score = CalculateConfidence(*this, original_state_ids);
+
     // Insert the interpolated results into the result list
     std::vector<MatchResult> best_path;
     for (StateId::Time time = 0; time < original_state_ids.size(); time++) {
@@ -612,7 +653,7 @@ std::vector<MatchResults> MapMatcher::OfflineMatch(const std::vector<Measurement
 
     // Construct a result
     auto segments = ConstructRoute(*this, best_path.cbegin(), best_path.cend());
-    MatchResults match_results(std::move(best_path), std::move(segments), accumulated_cost);
+    MatchResults match_results(std::move(best_path), std::move(segments), confidence_score);
 
     // We'll keep it if we don't have a duplicate already
     auto found_path = std::find(best_paths.rbegin(), best_paths.rend(), match_results);
