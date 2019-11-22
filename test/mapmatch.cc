@@ -10,6 +10,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "baldr/json.h"
+#include "loki/worker.h"
 #include "meili/map_matcher.h"
 #include "meili/map_matcher_factory.h"
 #include "midgard/distanceapproximator.h"
@@ -17,6 +18,8 @@
 #include "midgard/logging.h"
 #include "midgard/util.h"
 #include "mjolnir/util.h"
+#include "odin/worker.h"
+#include "thor/worker.h"
 #include "tyr/actor.h"
 #include "worker.h"
 
@@ -116,6 +119,25 @@ std::string json_escape(const std::string& unescaped) {
   escaped.pop_back();
   return escaped;
 }
+
+struct trace_tester {
+  trace_tester()
+      : reader(new baldr::GraphReader(conf.get_child("mjolnir"))), loki_worker(conf, reader),
+        thor_worker(conf, reader), odin_worker(conf) {
+  }
+  Api test(const std::string& request_json) {
+    Api request;
+    ParseApi(request_json, Options::route, request);
+    loki_worker.trace(request);
+    thor_worker.trace_route(request);
+    odin_worker.narrate(request);
+    return request;
+  }
+  std::shared_ptr<baldr::GraphReader> reader;
+  loki::loki_worker_t loki_worker;
+  thor::thor_worker_t thor_worker;
+  odin::odin_worker_t odin_worker;
+};
 
 int seed = 521;
 int bound = 81;
@@ -389,22 +411,30 @@ void test_edges_discontinuity_with_multi_routes() {
   std::vector<a_t> test_answers = {a_t{3, 3, true},  a_t{3, 3, true}, a_t{3, 4, true},
                                    a_t{3, 3, false}, a_t{1, 9, true}, a_t{1, 1, true},
                                    a_t{2, 7, true},  a_t{2, 2, true}};
-  tyr::actor_t actor(conf, true);
+  trace_tester tester;
   for (size_t i = 0; i < test_cases.size(); ++i) {
-    auto json_match = actor.trace_route(test_cases[i]);
-    auto matched = json_to_pt(json_match);
-    const auto& trips = matched.get_child("matchings");
-    if (trips.size() != std::get<0>(test_answers[i]))
+    auto response = tester.test(test_cases[i]);
+    if (response.trip().routes_size() != std::get<0>(test_answers[i]))
       throw std::logic_error("Expected " + std::to_string(std::get<0>(test_answers[i])) +
-                             " routes but got " + std::to_string(trips.size()));
+                             " routes but got " + std::to_string(response.trip().routes_size()));
     size_t leg_count = 0;
-    for (const auto& trip : trips)
-      leg_count += trip.second.get_child("legs").size();
+    std::unordered_set<unsigned int> durations;
+    for (const auto& route : response.trip().routes()) {
+      leg_count += route.legs_size();
+      // dont allow the same duration twice, this was a bug previously
+      for (const auto& leg : route.legs()) {
+        if (!durations.insert(leg.node().rbegin()->elapsed_time()).second)
+          throw std::logic_error("Found leg with identical duration");
+        if (leg.location(0).has_date_time() && !std::get<2>(test_answers[i]))
+          throw std::logic_error("Found a leg with a start time when it shouldnt have had one");
+        if (!leg.location(0).has_date_time() && std::get<2>(test_answers[i]))
+          throw std::logic_error("Found a leg without a start time when it should have had one");
+      }
+    }
+
     if (leg_count != std::get<1>(test_answers[i]))
       throw std::logic_error("Expected " + std::to_string(std::get<1>(test_answers[i])) +
                              " legs in total but got " + std::to_string(leg_count));
-
-    // TODO: check that the route has a time set similar to how we do it in multipoint_routes
   }
 }
 
