@@ -1058,7 +1058,8 @@ TripLegBuilder::Build(const AttributesController& controller,
                       TripLeg& trip_path,
                       const std::function<void()>* interrupt_callback,
                       std::unordered_map<size_t, std::pair<RouteDiscontinuity, RouteDiscontinuity>>*
-                          route_discontinuities) {
+                          route_discontinuities,
+                      bool trim_path_info_for_mm) {
   // Test interrupt prior to building trip path
   if (interrupt_callback) {
     (*interrupt_callback)();
@@ -1209,7 +1210,10 @@ TripLegBuilder::Build(const AttributesController& controller,
 
     auto* node = trip_path.add_node();
     if (controller.attributes.at(kNodeElapsedTime)) {
-      node->set_elapsed_time(path_begin->elapsed_time);
+      node->set_elapsed_time(!trim_path_info_for_mm
+                                 ? path_begin->elapsed_time
+                                 : (trim_dest ? dst_pct : 1) -
+                                       (trim_src * src_pct) * path_begin->elapsed_time);
     }
 
     const GraphTile* end_tile = graphreader.GetGraphTile(edge->endnode());

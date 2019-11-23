@@ -482,12 +482,38 @@ thor_worker_t::map_match(Api& request) {
             add_path_edge(origin_location, *leg_origin_iter);
             add_path_edge(destination_location, *leg_destination_iter);
 
+            bool trim_src = false, trim_dest = false;
+            if (leg_origin_iter - 1 > begin &&
+                (leg_origin_iter - 1).edgeid == leg_origin_iter->edgeid)
+              trim_src = true;
+            if (leg_destination_iter + 1 < end &&
+                (leg_destination_iter + 1).edgeid == leg_destination_iter->edgeid)
+              trim_dst = true;
+
+            // TODO: if there is a leg in this route already and it has a date time
+            // then take the elapsed time from the last path info of the last leg
+            // and offset the time by the elapsed time and convert to local time
+            // and set this time as the time for the first shape point in this new leg
+            if (!date_time.empty()) {
+              auto destination_dt =
+                  offset_date(*reader, date_time, origin_edge,
+                              route->legs().rbegin()->node().rbegin()->elapsed_time(), dest_edge);
+              destination_location->set_date_time(destination_dt);
+            }
+
             // add a new leg to the current route
             TripLegBuilder::Build(controller, matcher->graphreader(), mode_costing,
                                   edges.begin() + last_edge_index, edges.begin() + i + 1,
                                   *origin_location, *destination_location,
                                   std::list<valhalla::Location>{}, *route->mutable_legs()->Add(),
-                                  interrupt, &m_temp_route_discontinuities);
+                                  interrupt, &m_temp_route_discontinuities, trim_src, trim_dest);
+
+            // remember if the last leg was time dependent so we can propogate the time info forward
+            if (origin_location->has_date_time()) {
+              date_time = origin_location->has_date_time();
+              origin_edge = leg_origin_iter->edgeid;
+              dest_edge = leg_destination_iter->edgeid;
+            }
 
             // beginning of next leg will be the end of this leg
             leg_origin_iter = leg_destination_iter;
