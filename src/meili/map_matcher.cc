@@ -256,39 +256,87 @@ std::vector<MatchResult> FindMatchResults(const MapMatcher& mapmatcher,
 // Calculate a confidence score out of 1 for the match.
 //
 // Factors that influence confidence are:
-// - `absolute_distance_factor`: distance from input point to selected candidate edge. Distance of 0
-// is a perfect confidence score.
-// - `relative_distance_factor`: distance of selected candidate edge relative to all other candidate
+// - `candidate_ambiguity_factor`: distance of selected candidate edge relative to all other candidate
 // edges. If there is only one candidate edge this is a perfect confidence score. Many candidates with
 // similar distance lead to a worse confidence.
-// - `absolute_transition_factor`: distance from one state to the next. Shorter distances between
-// states give better confidence.
-// - `relative_transition_factor`: distance from one state to all other candidate states. If there is
+// - `path_ambiguity_factor`: distance from one state to all other candidate states. If there is
 // only one candidate state transition this is high confidence. Many candidate state transitions lead
 // to a worse confidence.
+// - `geometric error`: measure of distance from input geometry to output geometry.
 //
-double CalculateConfidence(const MapMatcher& mapmatcher, const std::vector<StateId>& stateids) {
-  double total_candidates_sq_distance = 0.f;
-  double total_winner_sq_distance = 0.f;
-  for (StateId::Time time = 0; time < stateids.size(); time++) {
-    auto column = mapmatcher.state_container().column(stateids[time].time());
+double CalculateConfidence(const MapMatcher& mapmatcher, std::vector<MatchResult>& match_results) {
+  double candidate_ambiguity_factor = 0.f;
+  double path_ambiguity_factor = 0.f;
+  size_t num_points = 0;
+  size_t num_transitions = 0;
 
-    for (auto state : column) {
-      for (auto edge : state.candidate().edges)
-        total_candidates_sq_distance += edge.distance;
+  for (const auto& result : match_results) {
+    // we have a discontinuity so we can't measure confidence
+    if (!result.HasState())
+      continue;
+
+    // candidate_ambiguity_factor: relative distance to all candidate edges for this match result
+    double total_candidates_sq_distance = 0.f;
+    double winner_sq_distance = 0.f;
+    const auto& column = mapmatcher.state_container().column(result.stateid.time());
+    for (const auto& state : column) {
+      auto candidate_distance = state.candidate().edges.front().distance;
+      total_candidates_sq_distance += candidate_distance;
+      if (state.stateid() == result.stateid) {
+        winner_sq_distance = candidate_distance;
+      }
     }
+    auto blah = winner_sq_distance != total_candidates_sq_distance
+                    ? 1 - (winner_sq_distance / total_candidates_sq_distance)
+                    : 1;
+    printf("Candidate ambiguity factor for %d was %1.2f\n", result.stateid.time(), blah);
+    candidate_ambiguity_factor += blah;
+    num_points++;
 
-    auto winner_sq_distance =
-        mapmatcher.state_container().state(stateids[time]).candidate().edges[0].distance;
+    // skip first result, as well as first result after a discontinuity
+    if (&result == &match_results.front() || !(&result - 1)->HasState()) {
+      // penalize the candidate_ambiguity_factor at discontinuities
+      ++num_points;
+      continue;
+    }
+    const auto& prev_result = *(&result - 1);
 
-    total_winner_sq_distance += winner_sq_distance;
+    // path_ambiguity_factor: relative distance of all candidate paths leading to this match result
+    double total_transitions_distance = 0.f;
+    double winner_transitions_distance = 0.f;
+    auto prev_column = mapmatcher.state_container().column(result.stateid.time() - 1);
+    for (const auto& source_state : prev_column) {
+      for (const auto& target_state : column) {
+        auto route_rbegin = source_state.RouteBegin(target_state),
+             route_rend = source_state.RouteEnd();
+        // No route, discontinuity
+        if (route_rbegin == route_rend) {
+          // penalize the path_ambiguity_factor at discontinuities
+          ++num_transitions;
+          continue;
+        }
+        // cost here is actually distance, we square it to match candidate sq_distance
+        auto transition_distance = route_rbegin->cost().cost * route_rbegin->cost().cost;
+        printf("Transition distance for %d was %1.2f\n", result.stateid.time(), transition_distance);
+        total_transitions_distance += transition_distance;
+        // if stateids match the result stateids, this was the chosen path
+        if (source_state.stateid() == prev_result.stateid &&
+            target_state.stateid() == result.stateid) {
+          winner_transitions_distance = transition_distance;
+        }
+      }
+    }
+    auto blah2 = winner_transitions_distance != total_transitions_distance
+                     ? 1 - (winner_transitions_distance / total_transitions_distance)
+                     : 1;
+    printf("Path ambiguity factor for %d was %1.2f\n", result.stateid.time(), blah2);
+    path_ambiguity_factor += blah2;
+    ++num_transitions;
   }
-
-  double relative_distance_factor = (total_winner_sq_distance / total_candidates_sq_distance);
-
-  return 1 - (relative_distance_factor) /* + absolute_distance_factor + relative_transition_factor +
-                                     absolute_transition_factor */
-      ;
+  // TODO how to combine these factors, right now they're equally weighted
+  return 0.5 * (candidate_ambiguity_factor / num_points) +
+         0.5 * (path_ambiguity_factor / num_transitions)
+      /* geometric_error */;
 }
 
 struct path_t {
@@ -625,7 +673,7 @@ std::vector<MatchResults> MapMatcher::OfflineMatch(const std::vector<Measurement
     auto results = FindMatchResults(*this, original_state_ids);
 
     // Calculate a confidence score for the match
-    auto confidence_score = CalculateConfidence(*this, original_state_ids);
+    auto confidence_score = CalculateConfidence(*this, results);
 
     // Insert the interpolated results into the result list
     std::vector<MatchResult> best_path;
