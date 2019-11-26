@@ -28,6 +28,7 @@
 #include "thor/worker.h"
 #include "tyr/serializers.h"
 
+#include <string>
 #include <valhalla/proto/directions.pb.h>
 #include <valhalla/proto/options.pb.h>
 #include <valhalla/proto/trip.pb.h>
@@ -60,7 +61,7 @@ namespace vo = valhalla::odin;
  *  copy the generated test file to test/fake_tiles_astar/2/000/519/120.gph
  */
 
-// #define MAKE_TEST_TILES
+#define MAKE_TEST_TILES
 
 #ifdef MAKE_TEST_TILES
 #include "mjolnir/directededgebuilder.h"
@@ -84,7 +85,7 @@ namespace {
 //       5  6
 //
 // second test is a triangle set of roads, where the height of the triangle is
-// about at third of its width.
+// about a third of its width.
 //
 //      8  10
 //  e--->--<---f
@@ -109,7 +110,6 @@ std::pair<vb::GraphId, vm::PointLL> f({tile_id.tileid(), tile_id.level(), 5}, {0
 std::pair<vb::GraphId, vm::PointLL> g({tile_id.tileid(), tile_id.level(), 6}, {0.05, 0.11});
 } // namespace node
 
-#ifdef MAKE_TEST_TILES
 void make_tile() {
   using namespace valhalla::mjolnir;
 
@@ -131,29 +131,35 @@ void make_tile() {
     node_builder.set_edge_count(edge_count);
     node_builder.set_edge_index(edge_index);
     edge_index += edge_count;
-    tile.nodes().emplace_back(std::move(node_builder));
+    tile.nodes().emplace_back(node_builder);
   };
 
   auto add_edge = [&](const std::pair<vb::GraphId, vm::PointLL>& u,
-                      const std::pair<vb::GraphId, vm::PointLL>& v, const uint32_t name,
-                      const uint32_t opposing, const bool forward) {
-    DirectedEdgeBuilder edge_builder({}, v.first, forward, u.second.Distance(v.second) + .5, 1, 1, 1,
-                                     {}, {}, 0, false, 0, 0);
+                      const std::pair<vb::GraphId, vm::PointLL>& v,
+                      const uint32_t edgeindex,
+                      const uint32_t opposing,
+                      const bool forward) {
+    DirectedEdgeBuilder edge_builder({}, v.first, forward, u.second.Distance(v.second) + .5, 1, 1,
+                                     baldr::Use::kRoad, baldr::RoadClass::kMotorway, 0, false, 0, 0,
+                                     false);
     edge_builder.set_opp_index(opposing);
     edge_builder.set_forwardaccess(vb::kAllAccess);
     std::vector<vm::PointLL> shape = {u.second, u.second.MidPoint(v.second), v.second};
-    if (!forward)
+    if (!forward) {
       std::reverse(shape.begin(), shape.end());
-    bool add;
+    }
+    bool added;
     // make more complex edge geom so that there are 3 segments, affine combination doesnt properly
     // handle arcs but who cares
-    uint32_t edge_info_offset =
-        tile.AddEdgeInfo(name, u.first, v.first, 123, 0, 0, shape, {std::to_string(name)}, 0, add);
+    uint32_t edge_info_offset = tile.AddEdgeInfo(edgeindex, u.first, v.first, 123, // way_id
+                                                 0, 0,
+                                                 120, // speed limit, kph?
+                                                 shape, {std::to_string(edgeindex)}, 0, added);
     edge_builder.set_edgeinfo_offset(edge_info_offset);
-    tile.directededges().emplace_back(std::move(edge_builder));
+    tile.directededges().emplace_back(edge_builder);
   };
 
-  // first set of roads
+  // first set of roads - Square
   add_edge(node::a, node::b, 0, 2, true);
   add_edge(node::a, node::c, 1, 4, true);
   add_node(node::a, 2);
@@ -170,7 +176,7 @@ void make_tile() {
   add_edge(node::d, node::b, 2, 3, false);
   add_node(node::d, 2);
 
-  // second set of roads
+  // second set of roads - Triangle
   add_edge(node::e, node::f, 4, 10, true);
   add_edge(node::e, node::g, 5, 12, true);
   add_node(node::e, 2);
@@ -190,7 +196,6 @@ void make_tile() {
   auto bins = GraphTileBuilder::BinEdges(&reloaded, tweeners);
   GraphTileBuilder::AddBins(test_dir, &reloaded, bins);
 }
-#endif /* MAKE_TEST_TILES */
 
 const std::string config_file = "test/test_trivial_path";
 
@@ -222,14 +227,22 @@ void create_costing_options(Options& options) {
     }
   }
 }
+
+enum class TrivialPathTest {
+  MatchesEdge,
+  DurationEqualTo,
+};
+
 // check that a path from origin to dest goes along the edge with expected_edge_index
 void assert_is_trivial_path(valhalla::Location& origin,
                             valhalla::Location& dest,
-                            uint32_t expected_edge_index) {
+                            uint32_t expected_num_paths,
+                            TrivialPathTest assert_type,
+                            uint32_t assert_type_value) {
 
   // make the config file
   std::stringstream json;
-  json << "{ \"tile_dir\": \"" VALHALLA_SOURCE_DIR "test/fake_tiles_astar\" }";
+  json << "{ \"tile_dir\": \"" VALHALLA_SOURCE_DIR "/" << test_dir << "\" }";
   bpt::ptree conf;
   rapidjson::read_json(json, conf);
 
@@ -256,25 +269,45 @@ void assert_is_trivial_path(valhalla::Location& origin,
     for (const auto& p : path) {
       time += p.elapsed_time;
     }
+    if (path.size() != expected_num_paths) {
+      std::ostringstream ostr;
+      ostr << "Expected number of paths to be " << expected_num_paths << ", but got " << paths.size();
+      throw std::runtime_error(ostr.str());
+    }
     break;
   }
 
-  const DirectedEdge* de = tile->directededge(expected_edge_index);
-  auto cost = pedestrian->EdgeCost(de, tile);
-  uint32_t expected_time = cost.cost;
+  uint32_t expected_time = 979797;
+  switch (assert_type) {
+    case TrivialPathTest::DurationEqualTo:
+      // Supply duration directly
+      expected_time = assert_type_value;
+      break;
+    case TrivialPathTest::MatchesEdge:
+      // Grab time from an edge index
+      const DirectedEdge* expected_edge = tile->directededge(assert_type_value);
+      auto expected_cost = pedestrian->EdgeCost(expected_edge, tile);
+      expected_time = expected_cost.cost;
+      break;
+  };
+  if (expected_time == 0) {
+    throw std::runtime_error("Expected time is 0, your test probably has a logic error");
+  }
+
   if (time != expected_time) {
     std::ostringstream ostr;
-    ostr << "Expected " << expected_time << ", but got " << time;
+    ostr << "Expected time to be " << expected_time << ", but got " << time;
     throw std::runtime_error(ostr.str());
   }
 }
 
-void add(GraphId id, float dist, const PointLL& ll, valhalla::Location& l) {
-  l.mutable_path_edges()->Add()->set_graph_id(id);
-  l.mutable_path_edges()->rbegin()->set_percent_along(dist);
-  l.mutable_path_edges()->rbegin()->mutable_ll()->set_lng(ll.first);
-  l.mutable_path_edges()->rbegin()->mutable_ll()->set_lat(ll.second);
-  l.mutable_path_edges()->rbegin()->set_distance(0.0f);
+// Adds edge to location
+void add(GraphId edge_id, float percent_along, const PointLL& ll, valhalla::Location& location) {
+  location.mutable_path_edges()->Add()->set_graph_id(edge_id);
+  location.mutable_path_edges()->rbegin()->set_percent_along(percent_along);
+  location.mutable_path_edges()->rbegin()->mutable_ll()->set_lng(ll.first);
+  location.mutable_path_edges()->rbegin()->mutable_ll()->set_lat(ll.second);
+  location.mutable_path_edges()->rbegin()->set_distance(0.0f);
 }
 
 // test that a path from A to B succeeds, even if the edges from A to C and B
@@ -300,7 +333,41 @@ void TestTrivialPath() {
   add(tile_id + uint64_t(0), 1.0f, b.second, dest);
 
   // this should go along the path from A to B
-  assert_is_trivial_path(origin, dest, 0);
+  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 0);
+}
+
+void TestPartialDuration() {
+  // Tests that a partial duration is returned when starting on a partial edge
+  using node::a;
+  using node::b;
+  using node::d;
+  float partial_dist = 0.; //(a.second.first - loc_on_partial_edge.ll().lat());
+
+  valhalla::Location origin;
+  origin.mutable_ll()->set_lng(a.second.first);
+  origin.mutable_ll()->set_lat(a.second.second);
+  add(tile_id + uint64_t(0), partial_dist, a.second, origin);
+  add(tile_id + uint64_t(2), 1. - partial_dist, a.second, origin);
+  add(tile_id + uint64_t(1), 0.0f, a.second, origin);
+  add(tile_id + uint64_t(4), 1.0f, a.second, origin);
+
+  valhalla::Location middle;
+  middle.mutable_ll()->set_lng(b.second.first);
+  middle.mutable_ll()->set_lat(b.second.second);
+  add(tile_id + uint64_t(2), 0.0f, b.second, middle);
+  add(tile_id + uint64_t(0), 1.0f, b.second, middle);
+  add(tile_id + uint64_t(3), 0.0f, b.second, middle);
+  add(tile_id + uint64_t(7), 1.0f, b.second, middle);
+
+  valhalla::Location dest;
+  dest.mutable_ll()->set_lng(d.second.first);
+  dest.mutable_ll()->set_lat(d.second.second);
+  add(tile_id + uint64_t(6), 0.0f, d.second, dest);
+  add(tile_id + uint64_t(5), 1.0f, d.second, dest);
+  add(tile_id + uint64_t(7), 0.0f, d.second, dest);
+  add(tile_id + uint64_t(3), 1.0f, d.second, dest);
+
+  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::DurationEqualTo, 2);
 }
 
 // test that a path from E to F succeeds, even if the edges from E and F
@@ -326,7 +393,7 @@ void TestTrivialPathTriangle() {
   add(tile_id + uint64_t(8), 1.0f, f.second, dest);
 
   // this should go along the path from E to F
-  assert_is_trivial_path(origin, dest, 8);
+  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
 }
 
 void trivial_path_no_uturns(const std::string& config_file) {
@@ -821,23 +888,23 @@ void test_time_restricted_road() {
 int main() {
   test::suite suite("astar");
 
-#ifdef MAKE_TEST_TILES
   // TODO: move to mjolnir?
   suite.test(TEST_CASE(make_tile));
-#endif /* MAKE_TEST_TILES */
 
   suite.test(TEST_CASE(TestTrivialPath));
-  suite.test(TEST_CASE(TestTrivialPathTriangle));
+  //suite.test(TEST_CASE(TestTrivialPathTriangle));
 
-  suite.test(TEST_CASE(DoConfig));
-  suite.test(TEST_CASE(TestTrivialPathNoUturns));
+  //suite.test(TEST_CASE(DoConfig));
+  //suite.test(TEST_CASE(TestTrivialPathNoUturns));
 
-  suite.test(TEST_CASE(test_deadend));
-  suite.test(TEST_CASE(test_deadend_timedep_forward));
-  suite.test(TEST_CASE(test_deadend_timedep_reverse));
-  suite.test(TEST_CASE(test_oneway));
-  suite.test(TEST_CASE(test_oneway_wrong_way));
-  suite.test(TEST_CASE(test_time_restricted_road));
+  //suite.test(TEST_CASE(TestPartialDuration));
+
+  //suite.test(TEST_CASE(test_deadend));
+  //suite.test(TEST_CASE(test_deadend_timedep_forward));
+  //suite.test(TEST_CASE(test_deadend_timedep_reverse));
+  //suite.test(TEST_CASE(test_oneway));
+  //suite.test(TEST_CASE(test_oneway_wrong_way));
+  //suite.test(TEST_CASE(test_time_restricted_road));
 
   return suite.tear_down();
 }

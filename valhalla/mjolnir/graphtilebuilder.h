@@ -192,7 +192,7 @@ public:
    * @param  wayid  The target edge is part of this the way id.
    * @param  elev   Mean elevation.
    * @param  bn     Bike network.
-   * @param  spd    Speed limit.
+   * @param  spd    Speed limit. Unit?
    * @param  lls    The shape of the target edge.
    * @param  names  The names of the target edge.
    * @param  types  Bits indicating if the name is a ref vs a name.
@@ -206,10 +206,13 @@ public:
   uint32_t AddEdgeInfo(const uint32_t edgeindex,
                        const baldr::GraphId& nodea,
                        const baldr::GraphId& nodeb,
+
                        const uint32_t wayid,
                        const float elev,
+
                        const uint32_t bn,
                        const uint32_t spd,
+
                        const shape_container_t& lls,
                        const std::vector<std::string>& names,
                        const uint16_t types,
