@@ -198,26 +198,6 @@ Note that our CI system checks that code formatting is consistent, and the build
 
 Also note that we run some `clang-tidy` linting over the code as well (see `.clang-tidy` for the list of rules enforced).  You can run `./scripts/clang-tidy-only-diff.sh` over the code before committing to ensure you haven't added any of the common problems we check for (Note: `./scripts/clang-tidy-only-diff.sh` requires the exitence of a `compile_commands.json` database.  You can generate this file by running `cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=On ... && make`.
 
-Using the Node.js Bindings
---------------------------
-
-The Node.js bindings are still under construction. We are working on building binaries for as many environments as possible, but they may not all be available yet. We have exposed all of the `tyr::actor_t` actions to the bindings (`route`, `locate`, `height`, `isochrone`, `matrix`, `optimizedRoute`, `traceAttributes`, `traceRoute`, `transitAvailable`). Right now, the input and the output are both strings - THAT WILL LIKELY CHANGE. We plan on ingesting and producing protobufs and/or json.
-
-The Node.js bindings provide read-only access to the routing engine. You can install the Node.js bindings from this repository via `$npm install` which will check and use pre-built binaries if they're available for this release and your Node version. You can also run `npm install valhalla` to include the package as a dependency in another project, but we do not have a stable version of the bindings available on the npm org yet. Check the CHANGELOG for the details of the latest release. We also may not have built binaries for your particular setup. You can also build bindings from source with the ENABLE_NODE_BINDINGS option.
-
-We are using [node-pre-gyp](https://github.com/mapbox/node-pre-gyp) to manage the bindings for different build systems, and N-API to write the bindings themselves. Node-pre-gyp hooks into the `npm install` command and goes looking on s3 for the appropriate binary for the system on which it was run. CircleCI currently builds release and debug binaries for linux, and publishes them to s3. To use the debug binaries, run `npm install --debug` and node-pre-gyp will be told to go find the debug binary instead of the release one.
-
-N-API aims to provide ABI compatibility guarantees across different Node versions and also across different Node VMs - allowing N-API enabled native modules to just work across different versions and flavors of Node.js without recompilations. N-API is a new feature and was experimental until node 8.11.2, after which is it considered stable. Please make sure you are using node 8.11.2+ or node 10 if you want to use the node bindings. We have tested the bindings on 8.11.2, 10.3.0, and 10.6.0 - it is probably safest to pin your node version to one of those, since we have only built binaries for N-API v3. We will consider building binaries for newer N-API versions when and if they are released.
-
-Example of using in a node project:
-```js
-var Valhalla = require('valhalla');
-var valhalla = new Valhalla(configString);
-var hersheyRequest = '{"locations":[{"lat":40.546115,"lon":-76.385076,"type":"break"}, {"lat":40.544232,"lon":-76.385752,"type":"break"}],"costing":"auto"}';
-var route = valhalla.route(hersheyRequest); // returns a string, other actions also available
-```
-
-Please see the releasing docs for information on releasing a new version.
 
 Tests
 -----
