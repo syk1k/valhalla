@@ -7,7 +7,6 @@
 
 #include "baldr/graphid.h"
 #include "baldr/graphreader.h"
-#include "meili/traffic_segment_matcher.h"
 
 #if !defined(VALHALLA_SOURCE_DIR)
 #define VALHALLA_SOURCE_DIR
