@@ -79,8 +79,8 @@ public:
         arc_dist(), manuevers() {
   }
 
-  void setSuccess(std::string s) {
-    success = std::move(s);
+  void setSuccess(const std::string& s) {
+    success = s;
   }
   void incPasses(void) {
     ++passes;
