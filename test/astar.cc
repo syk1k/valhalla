@@ -262,6 +262,9 @@ void assert_is_trivial_path(valhalla::Location& origin,
   const DirectedEdge* de = tile->directededge(expected_edge_index);
   auto cost = pedestrian->EdgeCost(de, tile);
   uint32_t expected_time = cost.cost;
+  if (expected_time == 0) {
+    throw std::runtime_error("Expected time is 0, your test probably has a logic error");
+  }
   if (time != expected_time) {
     std::ostringstream ostr;
     ostr << "Expected " << expected_time << ", but got " << time;
