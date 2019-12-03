@@ -23,15 +23,15 @@ using namespace valhalla::baldr;
 
 namespace {
 
-void test_instructions(const std::string filename,
+void test_instructions(const std::string& filename,
                        int expected_routes_size,
                        int expected_legs_size,
                        int expected_maneuvers_size,
                        int maneuver_index,
-                       const std::string expected_text_instruction,
-                       const std::string expected_verbal_transition_alert_instruction = "",
-                       const std::string expected_verbal_pre_transition_instruction = "",
-                       const std::string expected_verbal_post_transition_instruction = "") {
+                       const std::string& expected_text_instruction,
+                       const std::string& expected_verbal_transition_alert_instruction = "",
+                       const std::string& expected_verbal_pre_transition_instruction = "",
+                       const std::string& expected_verbal_post_transition_instruction = "") {
   // Load pinpoint test
   std::string path_bytes = test::load_binary_file(filename);
   if (path_bytes.size() == 0) {
@@ -119,12 +119,12 @@ void test_instructions(const std::string filename,
   }
 }
 
-void test_osrm_maneuver(const std::string filename,
+void test_osrm_maneuver(const std::string& filename,
                         int routes_index,
                         int legs_index,
                         int steps_index,
-                        const std::string expected_maneuver_type,
-                        const std::string expected_maneuver_modifier) {
+                        const std::string& expected_maneuver_type,
+                        const std::string& expected_maneuver_modifier) {
   // Load pinpoint test
   std::string path_bytes = test::load_binary_file(filename);
   if (path_bytes.size() == 0) {

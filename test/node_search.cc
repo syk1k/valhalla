@@ -191,7 +191,7 @@ void graph_builder::write_tiles(uint8_t level) const {
 
     auto& tile = writer.builder(tile_id);
     node_ids.emplace_back(tile_id.tileid(), level, tile.nodes().size());
-    tile.nodes().emplace_back(std::move(node_builder));
+    tile.nodes().emplace_back(node_builder);
   }
 
   // don't need these any more
@@ -265,7 +265,7 @@ void graph_builder::write_tiles(uint8_t level) const {
     }
     edge_builder.set_edgeinfo_offset(edge_info_offset);
 
-    tile.directededges().emplace_back(std::move(edge_builder));
+    tile.directededges().emplace_back(edge_builder);
   }
 
   writer.write_tiles();

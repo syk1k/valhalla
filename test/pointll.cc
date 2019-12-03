@@ -32,14 +32,14 @@ void test_constructor() {
     throw std::runtime_error("PointLL object should be set");
 }
 
-void test_along(const std::vector<PointLL> l, float d, float a) {
+void test_along(const std::vector<PointLL>& l, float d, float a) {
   auto r = PointLL::HeadingAlongPolyline(l, d);
   if (!valhalla::midgard::equal(r, a, 1.f))
     throw std::logic_error("Invalid polyline begin heading was " + std::to_string(r) +
                            " but should be " + std::to_string(a));
 }
 
-void test_end(const std::vector<PointLL> l, float d, float a) {
+void test_end(const std::vector<PointLL>& l, float d, float a) {
   auto r = PointLL::HeadingAtEndOfPolyline(l, d);
   if (!valhalla::midgard::equal(r, a, 1.f))
     throw std::logic_error("Invalid polyline end heading was " + std::to_string(r) +

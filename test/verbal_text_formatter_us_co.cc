@@ -20,7 +20,7 @@ public:
   }
 };
 
-void TryProcessStatesTts(string source, string expected) {
+void TryProcessStatesTts(const string& source, const string& expected) {
   VerbalTextFormatterUsCoTest formatter_test("US", "CO");
   string tts = formatter_test.ProcessStatesTts(source);
   if (tts != expected) {
@@ -92,7 +92,7 @@ void TestProcessStatesTts() {
   TryProcessStatesTts("WY 212", "Wyoming 212");
 }
 
-void TryFormat(string source, string expected) {
+void TryFormat(const string& source, const string& expected) {
   VerbalTextFormatterUsCoTest formatter_test("US", "CO");
   string tts = formatter_test.Format(source);
   if (tts != expected) {

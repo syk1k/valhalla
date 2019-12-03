@@ -158,7 +158,7 @@ void search(valhalla::baldr::Location location,
   location = PathLocation::fromPBF(pbf);
 
   const auto results = Search({location}, reader);
-  const auto p = results.at(location);
+  const auto& p = results.at(location);
 
   if ((p.edges.front().begin_node() || p.edges.front().end_node()) != expected_node)
     throw std::runtime_error(expected_node ? "Should've snapped to node"

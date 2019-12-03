@@ -49,7 +49,7 @@ void TestCtorPoint2Point2() {
 }
 
 void TryCtorVector2(const Vector2& v, const Vector2& expected) {
-  Vector2 result(v);
+  const Vector2& result(v);
   if (!(expected == result))
     throw runtime_error("CtorVector2 test failed");
 }

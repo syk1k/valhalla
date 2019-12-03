@@ -19,7 +19,7 @@ public:
   }
 };
 
-void TryFormNumberSplitTtsString(string source, string expected) {
+void TryFormNumberSplitTtsString(const string& source, const string& expected) {
   VerbalTextFormatterTest formatter_test("US", "PA");
   string tts = formatter_test.FormNumberSplitTts(source);
   if (tts != expected) {
@@ -57,7 +57,7 @@ void TestFormNumberSplitTtsString() {
   TryFormNumberSplitTtsString("Road 0110", "Road 01 10");
 }
 
-void TryFormat(string source, string expected) {
+void TryFormat(const string& source, const string& expected) {
   VerbalTextFormatterTest formatter_test("US", "PA");
   string tts = formatter_test.Format(source);
   if (tts != expected) {

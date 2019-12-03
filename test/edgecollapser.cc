@@ -111,7 +111,7 @@ void TestCollapseEdgeSimple() {
   builder.commit_tile(base_id);
   assert(builder.tiles.size() == 1);
 
-  test_graph_reader reader(std::move(builder.tiles));
+  test_graph_reader reader(builder.tiles);
 
   size_t count = 0;
   std::set<vb::GraphId> edges;
@@ -172,7 +172,7 @@ void TestCollapseEdgeJunction() {
   builder.commit_tile(base_id);
   assert(builder.tiles.size() == 1);
 
-  test_graph_reader reader(std::move(builder.tiles));
+  test_graph_reader reader(builder.tiles);
 
   size_t count = 0;
   std::set<vb::GraphId> edges;
@@ -230,7 +230,7 @@ void TestCollapseEdgeChain() {
   builder.commit_tile(base_id);
   assert(builder.tiles.size() == 1);
 
-  test_graph_reader reader(std::move(builder.tiles));
+  test_graph_reader reader(builder.tiles);
 
   size_t count = 0;
   std::set<vb::GraphId> edges;

@@ -27,8 +27,8 @@ public:
   using GraphTileBuilder::GraphTileBuilder;
 };
 
-bool tile_equalish(const GraphTile a,
-                   const GraphTile b,
+bool tile_equalish(const GraphTile& a,
+                   const GraphTile& b,
                    size_t difference,
                    const std::array<std::vector<GraphId>, kBinCount>& bins) {
   // expected size

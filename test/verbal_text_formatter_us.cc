@@ -47,7 +47,7 @@ public:
   }
 };
 
-void TryFormInterstateTtsString(string source, string expected) {
+void TryFormInterstateTtsString(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "PA");
   string tts = formatter_test.FormInterstateTts(source);
   if (tts != expected) {
@@ -71,7 +71,7 @@ void TestFormInterstateTtsString() {
   TryFormInterstateTtsString("WI 129", "WI 129");
 }
 
-void TryFormUsHighwayTtsString(string source, string expected) {
+void TryFormUsHighwayTtsString(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "PA");
   string tts = formatter_test.FormUsHighwayTts(source);
   if (tts != expected) {
@@ -89,7 +89,7 @@ void TestFormUsHighwayTtsString() {
   TryFormUsHighwayTtsString("Us-522", "U.S. 522");
 }
 
-void TryProcessStatesTts(string source, string expected) {
+void TryProcessStatesTts(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "");
   string tts = formatter_test.ProcessStatesTts(source);
   if (tts != expected) {
@@ -161,7 +161,7 @@ void TestProcessStatesTts() {
   TryProcessStatesTts("WY 212", "Wyoming 212");
 }
 
-void TryProcessCountysTts(string source, string expected) {
+void TryProcessCountysTts(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "");
   string tts = formatter_test.ProcessCountysTts(source);
   if (tts != expected) {
@@ -199,7 +199,7 @@ void TestProcessCountysTts() {
   TryProcessCountysTts("Co 200BAD", "Co 200BAD");
 }
 
-void TryFormThousandTtsString(string source, string expected) {
+void TryFormThousandTtsString(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "PA");
   string tts = formatter_test.ProcessThousandTts(source);
   if (tts != expected) {
@@ -228,7 +228,7 @@ void TestFormThousandTtsString() {
   TryFormThousandTtsString("MD 24000 West", "MD 24 thousand West");
 }
 
-void TryFormHundredTtsString(string source, string expected) {
+void TryFormHundredTtsString(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "MD");
   string tts = formatter_test.ProcessHundredTts(source);
   if (tts != expected) {
@@ -257,7 +257,7 @@ void TestFormHundredTtsString() {
   TryFormHundredTtsString("MD 2400 West", "MD 24 hundred West");
 }
 
-void TryFormNumberSplitTtsString(string source, string expected) {
+void TryFormNumberSplitTtsString(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "PA");
   string tts = formatter_test.FormNumberSplitTts(source);
   if (tts != expected) {
@@ -301,7 +301,7 @@ void TestFormNumberSplitTtsString() {
   TryFormNumberSplitTtsString("102ND Street", "102ND Street");
 }
 
-void TryFormLeadingOhTtsString(string source, string expected) {
+void TryFormLeadingOhTtsString(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "PA");
   string tts = formatter_test.FormLeadingOhTts(source);
   if (tts != expected) {
@@ -320,7 +320,7 @@ void TestFormLeadingOhTtsString() {
   TryFormLeadingOhTtsString("State Highway 0", "State Highway 0");
 }
 
-void TryFormat(string source, string expected) {
+void TryFormat(const string& source, const string& expected) {
   VerbalTextFormatterUsTest formatter_test("US", "PA");
   string tts = formatter_test.Format(source);
   if (tts != expected) {

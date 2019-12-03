@@ -24,7 +24,7 @@ public:
   }
 };
 
-void TryFormFmTts(string source, string expected) {
+void TryFormFmTts(const string& source, const string& expected) {
   VerbalTextFormatterUsTxTest formatter_test("US", "TX");
   string tts = formatter_test.FormFmTts(source);
   if (tts != expected) {
@@ -41,7 +41,7 @@ void TestFormFmTts() {
   TryFormFmTts("F-M-1018", "Farm to Market Road 1018");
 }
 
-void TryFormRmTts(string source, string expected) {
+void TryFormRmTts(const string& source, const string& expected) {
   VerbalTextFormatterUsTxTest formatter_test("US", "TX");
   string tts = formatter_test.FormRmTts(source);
   if (tts != expected) {
@@ -58,7 +58,7 @@ void TestFormRmTts() {
   TryFormRmTts("R-M-1018", "Ranch to Market Road 1018");
 }
 
-void TryFormat(string source, string expected) {
+void TryFormat(const string& source, const string& expected) {
   VerbalTextFormatterUsTxTest formatter_test("US", "TX");
   string tts = formatter_test.Format(source);
   if (tts != expected) {
