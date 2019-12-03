@@ -395,6 +395,7 @@ public:
    * @param mode         Mode of travel along this edge.
    * @param tc           Transition cost entering this edge.
    * @param not_thru_pruning  Is not thru pruning enabled.
+   * @param has_time_restrictions Does the edge have time dependent restrictions.
    */
   BDEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
@@ -424,6 +425,7 @@ public:
    * @param tc            Transition cost entering this edge.
    * @param path_distance Accumulated path distance.
    * @param not_thru_pruning  Is not thru pruning enabled.
+   * @param has_time_restrictions Does the edge have time dependent restrictions.
    */
   BDEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
@@ -448,7 +450,7 @@ public:
   }
 
   /**
-   * Constructor with values.
+   * Constructor with values. Used in SetOrigin.
    * @param predecessor  Index into the edge label list for the predecessor
    *                     directed edge in the shortest path.
    * @param edgeid       Directed edge Id.
@@ -457,6 +459,7 @@ public:
    * @param sortcost     Cost for sorting (includes A* heuristic).
    * @param dist         Distance to the destination in meters.
    * @param mode         Mode of travel along this edge.
+   * @param has_time_restrictions Does the edge have time dependent restrictions.
    */
   BDEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
@@ -467,7 +470,7 @@ public:
               const sif::TravelMode mode,
               const bool has_time_restrictions)
       : EdgeLabel(predecessor, edgeid, edge, cost, sortcost, dist, mode, 0, has_time_restrictions),
-        not_thru_pruning_(false) {
+        not_thru_pruning_(!edge->not_thru()) {
     opp_edgeid_ = {};
     transition_cost_ = {};
   }
@@ -479,6 +482,7 @@ public:
    * @param cost        True cost (and elapsed time in seconds) to the edge.
    * @param sortcost    Cost for sorting (includes A* heuristic).
    * @param tc          Transition cost onto the edge.
+   * @param has_time_restrictions Does the edge have time dependent restrictions.
    */
   void Update(const uint32_t predecessor,
               const sif::Cost& cost,
