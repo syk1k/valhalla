@@ -25,7 +25,7 @@ public:
 
   std::string GetExitNumberString(uint32_t max_count = 0,
                                   bool limit_by_consecutive_count = false,
-                                  std::string delim = "/",
+                                  const std::string& delim = "/",
                                   const VerbalTextFormatter* verbal_formatter = nullptr) const;
 
   const std::vector<Sign>& exit_branch_list() const;
@@ -33,7 +33,7 @@ public:
 
   std::string GetExitBranchString(uint32_t max_count = 0,
                                   bool limit_by_consecutive_count = false,
-                                  std::string delim = "/",
+                                  const std::string& delim = "/",
                                   const VerbalTextFormatter* verbal_formatter = nullptr) const;
 
   const std::vector<Sign>& exit_toward_list() const;
@@ -41,7 +41,7 @@ public:
 
   std::string GetExitTowardString(uint32_t max_count = 0,
                                   bool limit_by_consecutive_count = false,
-                                  std::string delim = "/",
+                                  const std::string& delim = "/",
                                   const VerbalTextFormatter* verbal_formatter = nullptr) const;
 
   const std::vector<Sign>& exit_name_list() const;
@@ -49,7 +49,7 @@ public:
 
   std::string GetExitNameString(uint32_t max_count = 0,
                                 bool limit_by_consecutive_count = false,
-                                std::string delim = "/",
+                                const std::string& delim = "/",
                                 const VerbalTextFormatter* verbal_formatter = nullptr) const;
 
   bool HasExit() const;

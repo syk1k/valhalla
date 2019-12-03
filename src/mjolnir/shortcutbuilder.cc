@@ -535,7 +535,7 @@ uint32_t AddShortcutEdges(GraphReader& reader,
       newedge.set_internal(false);
 
       // Add new directed edge to tile builder
-      tilebuilder.directededges().emplace_back(std::move(newedge));
+      tilebuilder.directededges().emplace_back(newedge);
       shortcut_count++;
       shortcut++;
     }
@@ -576,7 +576,7 @@ uint32_t FormShortcuts(GraphReader& reader, const TileLevel& level) {
     // dependent on edge Id into the new builders (e.g., node transitions)
     if (tile->header()->transitioncount() > 0) {
       for (uint32_t i = 0; i < tile->header()->transitioncount(); ++i) {
-        tilebuilder.transitions().emplace_back(std::move(*(tile->transition(i))));
+        tilebuilder.transitions().emplace_back(*(tile->transition(i)));
       }
     }
 
@@ -673,12 +673,12 @@ uint32_t FormShortcuts(GraphReader& reader, const TileLevel& level) {
         }
 
         // Add directed edge
-        tilebuilder.directededges().emplace_back(std::move(newedge));
+        tilebuilder.directededges().emplace_back(newedge);
       }
 
       // Set the edge count for the new node
       nodeinfo.set_edge_count(tilebuilder.directededges().size() - edge_count);
-      tilebuilder.nodes().emplace_back(std::move(nodeinfo));
+      tilebuilder.nodes().emplace_back(nodeinfo);
     }
 
     // Store the new tile

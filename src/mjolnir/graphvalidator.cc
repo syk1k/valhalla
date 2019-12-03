@@ -426,11 +426,11 @@ void validate(
         }
 
         // Add the directed edge to the local list
-        directededges.emplace_back(std::move(directededge));
+        directededges.emplace_back(directededge);
       }
 
       // Add the node to the list
-      nodes.emplace_back(std::move(nodeinfo));
+      nodes.emplace_back(nodeinfo);
     }
 
     // Add density to return class. Approximate the tile area square km

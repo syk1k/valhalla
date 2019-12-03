@@ -48,7 +48,7 @@ std::tuple<Point2, float, int> Point2::ClosestPoint(const std::vector<Point2>& p
 
   // If there are no points we are done
   if (pts.size() == 0) {
-    return std::make_tuple(std::move(closest), std::move(mindist), 0);
+    return std::make_tuple(std::move(closest), mindist, 0);
   }
   // If there is one point we are done
   if (pts.size() == 1) {
@@ -127,7 +127,7 @@ std::tuple<Point2, float, int> Point2::ClosestPoint(const std::vector<Point2>& p
       idx = static_cast<int>(pts.size() - 2);
     }
   }
-  return std::make_tuple(std::move(closest), std::move(std::sqrt(mindist)), std::move(idx));
+  return std::make_tuple(std::move(closest), std::sqrt(mindist), idx);
 }
 
 // Tests whether this point is within a polygon. Iterate through the

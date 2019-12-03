@@ -23,9 +23,9 @@ std::vector<Sign>* Signs::mutable_exit_number_list() {
 
 std::string Signs::GetExitNumberString(uint32_t max_count,
                                        bool limit_by_consecutive_count,
-                                       std::string delim,
+                                       const std::string& delim,
                                        const VerbalTextFormatter* verbal_formatter) const {
-  return ListToString(exit_number_list_, max_count, limit_by_consecutive_count, std::move(delim),
+  return ListToString(exit_number_list_, max_count, limit_by_consecutive_count, delim,
                       verbal_formatter);
 }
 
@@ -39,9 +39,9 @@ std::vector<Sign>* Signs::mutable_exit_branch_list() {
 
 std::string Signs::GetExitBranchString(uint32_t max_count,
                                        bool limit_by_consecutive_count,
-                                       std::string delim,
+                                       const std::string& delim,
                                        const VerbalTextFormatter* verbal_formatter) const {
-  return ListToString(exit_branch_list_, max_count, limit_by_consecutive_count, std::move(delim),
+  return ListToString(exit_branch_list_, max_count, limit_by_consecutive_count, delim,
                       verbal_formatter);
 }
 
@@ -55,9 +55,9 @@ std::vector<Sign>* Signs::mutable_exit_toward_list() {
 
 std::string Signs::GetExitTowardString(uint32_t max_count,
                                        bool limit_by_consecutive_count,
-                                       std::string delim,
+                                       const std::string& delim,
                                        const VerbalTextFormatter* verbal_formatter) const {
-  return ListToString(exit_toward_list_, max_count, limit_by_consecutive_count, std::move(delim),
+  return ListToString(exit_toward_list_, max_count, limit_by_consecutive_count, delim,
                       verbal_formatter);
 }
 
@@ -71,9 +71,9 @@ std::vector<Sign>* Signs::mutable_exit_name_list() {
 
 std::string Signs::GetExitNameString(uint32_t max_count,
                                      bool limit_by_consecutive_count,
-                                     std::string delim,
+                                     const std::string& delim,
                                      const VerbalTextFormatter* verbal_formatter) const {
-  return ListToString(exit_name_list_, max_count, limit_by_consecutive_count, std::move(delim),
+  return ListToString(exit_name_list_, max_count, limit_by_consecutive_count, delim,
                       verbal_formatter);
 }
 

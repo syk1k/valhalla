@@ -376,7 +376,7 @@ void MapMatcher::RemoveRedundancies(const std::vector<StateId>& result) {
 
         // This subpath is unique if: there is no path from the winner
         // or its node to node (no edges) and not on winner path or they dont overlap
-        path_t path_from_loser(std::move(edges));
+        path_t path_from_loser(edges);
         auto path_from_winner = paths_from_winner.find(right_candidate.stateid());
         if (path_from_winner == paths_from_winner.end() ||
             (path_from_loser.edges.empty() &&

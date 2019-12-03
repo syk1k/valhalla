@@ -322,7 +322,7 @@ resample_polyline(const std::vector<PointLL>& polyline, const float length, cons
   }
 
   // Append the last polyline point
-  resampled.push_back(std::move(polyline.back()));
+  resampled.push_back(polyline.back());
 
   return resampled;
 }

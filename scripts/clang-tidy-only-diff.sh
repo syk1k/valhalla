@@ -50,6 +50,7 @@ parallel -m \
   -p $tidy_dir \
   -header-filter "^$(pwd)/valhalla/[^/]+$" \
   -fix \
+  -fix-errors \
   -format-style=file \
   {} ::: "${modified_filepaths[@]}"
 

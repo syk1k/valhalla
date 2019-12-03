@@ -294,7 +294,7 @@ ProcessStopPairs(GraphTileBuilder& transit_tilebuilder,
             }
           }
           // Add to the departures list
-          departures.emplace(dep.orig_pbf_graphid, std::move(dep));
+          departures.emplace(dep.orig_pbf_graphid, dep);
           stats.dep_count++;
         }
       }
@@ -661,13 +661,13 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
         directededge.set_forward(true);
 
         // Add to list of directed edges
-        tilebuilder_transit.directededges().emplace_back(std::move(directededge));
+        tilebuilder_transit.directededges().emplace_back(directededge);
 
         // set the count to 1 DE
         // osm connections will be added later.
         egress_node.set_edge_count(1);
         // Add the egress node
-        tilebuilder_transit.nodes().emplace_back(std::move(egress_node));
+        tilebuilder_transit.nodes().emplace_back(egress_node);
         index++;
       }
 
@@ -710,7 +710,7 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
         directededge.set_forward(true);
 
         // Add to list of directed edges
-        tilebuilder_transit.directededges().emplace_back(std::move(directededge));
+        tilebuilder_transit.directededges().emplace_back(directededge);
       }
 
       // point to first platform
@@ -767,7 +767,7 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
         directededge.set_forward(true);
 
         // Add to list of directed edges
-        tilebuilder_transit.directededges().emplace_back(std::move(directededge));
+        tilebuilder_transit.directededges().emplace_back(directededge);
         index++;
       }
 
@@ -781,7 +781,7 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
 
       // Add the node
       station_node.set_edge_count(edge_count);
-      tilebuilder_transit.nodes().emplace_back(std::move(station_node));
+      tilebuilder_transit.nodes().emplace_back(station_node);
       added_stations.emplace(platform.prev_type_graphid());
     }
 
@@ -844,7 +844,7 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
     directededge.set_forward(true);
 
     // Add to list of directed edges
-    tilebuilder_transit.directededges().emplace_back(std::move(directededge));
+    tilebuilder_transit.directededges().emplace_back(directededge);
 
     // Add transit lines
     // level 3
@@ -934,7 +934,7 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
       directededge.set_forward(added);
 
       // Add to list of directed edges
-      tilebuilder_transit.directededges().emplace_back(std::move(directededge));
+      tilebuilder_transit.directededges().emplace_back(directededge);
       transitedges++;
     }
 
@@ -948,7 +948,7 @@ void AddToGraph(GraphTileBuilder& tilebuilder_transit,
 
     // Add the node
     platform_node.set_edge_count(edge_count);
-    tilebuilder_transit.nodes().emplace_back(std::move(platform_node));
+    tilebuilder_transit.nodes().emplace_back(platform_node);
   }
 
   // Log the number of added nodes and edges
@@ -1121,7 +1121,7 @@ void build_tiles(const boost::property_tree::ptree& pt,
             TransitDeparture td(lineid, dep.trip, dep.route, dep.blockid, dep.headsign_offset,
                                 dep.dep_time, dep.elapsed_time, dep.schedule_index,
                                 dep.wheelchair_accessible, dep.bicycle_accessible);
-            tilebuilder_transit.AddTransitDeparture(std::move(td));
+            tilebuilder_transit.AddTransitDeparture(td);
           } else {
 
             // Form transit departures -- frequency departure time
@@ -1129,7 +1129,7 @@ void build_tiles(const boost::property_tree::ptree& pt,
                                 dep.dep_time, dep.frequency_end_time, dep.frequency, dep.elapsed_time,
                                 dep.schedule_index, dep.wheelchair_accessible,
                                 dep.bicycle_accessible);
-            tilebuilder_transit.AddTransitDeparture(std::move(td));
+            tilebuilder_transit.AddTransitDeparture(td);
           }
         } catch (const std::exception& e) { LOG_ERROR(e.what()); }
       }

@@ -272,7 +272,7 @@ struct bin_handler_t {
         // do we want this edge
         if (edge_filter(edge) != 0.0f) {
           auto reach = get_reach(edge);
-          PathLocation::PathEdge path_edge{std::move(id),
+          PathLocation::PathEdge path_edge{id,
                                            0.f,
                                            node_ll,
                                            distance,
@@ -296,7 +296,7 @@ struct bin_handler_t {
         const auto* other_edge = other_tile->directededge(other_id);
         if (edge_filter(other_edge) != 0.0f) {
           auto reach = get_reach(other_edge);
-          PathLocation::PathEdge path_edge{std::move(other_id),
+          PathLocation::PathEdge path_edge{other_id,
                                            1.f,
                                            node_ll,
                                            distance,

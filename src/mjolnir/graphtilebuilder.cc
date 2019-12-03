@@ -69,21 +69,21 @@ GraphTileBuilder::GraphTileBuilder(const std::string& tile_dir,
 
   // Create access restriction list
   for (uint32_t i = 0; i < header_->access_restriction_count(); i++) {
-    access_restriction_builder_.emplace_back(std::move(access_restrictions_[i]));
+    access_restriction_builder_.emplace_back(access_restrictions_[i]);
   }
 
   // Create transit builders and add any text offsets to the set
   for (uint32_t i = 0; i < header_->departurecount(); i++) {
-    departure_builder_.emplace_back(std::move(departures_[i]));
+    departure_builder_.emplace_back(departures_[i]);
     name_info.insert({departures_[i].headsign_offset()});
   }
   for (uint32_t i = 0; i < header_->stopcount(); i++) {
-    stop_builder_.emplace_back(std::move(transit_stops_[i]));
+    stop_builder_.emplace_back(transit_stops_[i]);
     name_info.insert({transit_stops_[i].one_stop_offset()});
     name_info.insert({transit_stops_[i].name_offset()});
   }
   for (uint32_t i = 0; i < header_->routecount(); i++) {
-    route_builder_.emplace_back(std::move(transit_routes_[i]));
+    route_builder_.emplace_back(transit_routes_[i]);
     name_info.insert({transit_routes_[i].one_stop_offset()});
     name_info.insert({transit_routes_[i].op_by_onestop_id_offset()});
     name_info.insert({transit_routes_[i].op_by_name_offset()});
@@ -93,7 +93,7 @@ GraphTileBuilder::GraphTileBuilder(const std::string& tile_dir,
     name_info.insert({transit_routes_[i].desc_offset()});
   }
   for (uint32_t i = 0; i < header_->schedulecount(); i++) {
-    schedule_builder_.emplace_back(std::move(transit_schedules_[i]));
+    schedule_builder_.emplace_back(transit_schedules_[i]);
   }
 
   // Create sign builders
@@ -433,27 +433,27 @@ std::vector<DirectedEdge>& GraphTileBuilder::directededges() {
 
 // Add a transit departure.
 void GraphTileBuilder::AddTransitDeparture(const TransitDeparture& departure) {
-  departure_builder_.emplace_back(std::move(departure));
+  departure_builder_.emplace_back(departure);
 }
 
 // Add a transit stop.
 void GraphTileBuilder::AddTransitStop(const TransitStop& stop) {
-  stop_builder_.emplace_back(std::move(stop));
+  stop_builder_.emplace_back(stop);
 }
 
 // Add a transit route.
 void GraphTileBuilder::AddTransitRoute(const TransitRoute& route) {
-  route_builder_.emplace_back(std::move(route));
+  route_builder_.emplace_back(route);
 }
 
 // Add a transit schedule.
 void GraphTileBuilder::AddTransitSchedule(const TransitSchedule& schedule) {
-  schedule_builder_.emplace_back(std::move(schedule));
+  schedule_builder_.emplace_back(schedule);
 }
 
 // Add an access restriction.
 void GraphTileBuilder::AddAccessRestriction(const AccessRestriction& access_restriction) {
-  access_restriction_builder_.emplace_back(std::move(access_restriction));
+  access_restriction_builder_.emplace_back(access_restriction);
 }
 
 // Add access restrictions

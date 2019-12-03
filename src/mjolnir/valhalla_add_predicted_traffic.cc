@@ -223,7 +223,7 @@ void update_tile(const std::string& tile_dir,
     }
 
     // Add the directed edge to the local list
-    directededges.emplace_back(std::move(directededge));
+    directededges.emplace_back(directededge);
   }
 
   // Write the new tile with updated directed edges and the predicted speeds

@@ -1759,7 +1759,7 @@ void enhance(const boost::property_tree::ptree& pt,
             }
           }
           for (const auto& res : restrictions) {
-            access_restrictions.emplace_back(std::move(res));
+            access_restrictions.emplace_back(res);
           }
         }
       }

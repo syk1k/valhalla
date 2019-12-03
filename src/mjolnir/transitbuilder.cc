@@ -122,7 +122,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
     // the directed edge index
     size_t edge_index = tilebuilder_local.directededges().size();
     for (uint32_t i = 0, idx = nb.edge_index(); i < nb.edge_count(); i++, idx++) {
-      tilebuilder_local.directededges().emplace_back(std::move(currentedges[idx]));
+      tilebuilder_local.directededges().emplace_back(currentedges[idx]);
 
       // Update any signs that use this idx - increment their index by the
       // number of added edges
@@ -201,7 +201,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
                                         conn.names, 0, added);
       directededge.set_edgeinfo_offset(edge_info_offset);
       directededge.set_forward(true);
-      tilebuilder_local.directededges().emplace_back(std::move(directededge));
+      tilebuilder_local.directededges().emplace_back(directededge);
 
       LOG_DEBUG("Add conn from OSM to stop: ei offset = " + std::to_string(edge_info_offset));
 
@@ -213,7 +213,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
     // Add the node and directed edges
     nb.set_edge_index(edge_index);
     nb.set_edge_count(tilebuilder_local.directededges().size() - edge_index);
-    tilebuilder_local.nodes().emplace_back(std::move(nb));
+    tilebuilder_local.nodes().emplace_back(nb);
     nodeid++;
   }
 
@@ -266,7 +266,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
     // Reserve size for several connection edges
     uint32_t ec = (nb.edge_count() < kMaxTransitEdges) ? nb.edge_count() : kMaxTransitEdges;
     for (uint32_t i = 0, idx = nb.edge_index(); i < ec; i++, idx++) {
-      tilebuilder_transit.directededges().emplace_back(std::move(currentedges[idx]));
+      tilebuilder_transit.directededges().emplace_back(currentedges[idx]);
     }
 
     // Add directed edges for any connections from an egress
@@ -331,7 +331,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
         // TODO - this should use kMaxEdgesPerNode
         uint32_t n = tilebuilder_transit.directededges().size() - edge_index;
         if (n < 127) {
-          tilebuilder_transit.directededges().emplace_back(std::move(directededge));
+          tilebuilder_transit.directededges().emplace_back(directededge);
         } else {
           LOG_ERROR("Could not add transit connection edge!");
         }
@@ -349,7 +349,7 @@ void ConnectToGraph(GraphTileBuilder& tilebuilder_local,
     // reset the access to defaults.
     nb.set_access((kPedestrianAccess | kWheelchairAccess | kBicycleAccess));
     nb.set_edge_count(tilebuilder_transit.directededges().size() - edge_index);
-    tilebuilder_transit.nodes().emplace_back(std::move(nb));
+    tilebuilder_transit.nodes().emplace_back(nb);
   }
 
   // Some validation here...

@@ -326,7 +326,7 @@ void FormTilesInNewLevel(GraphReader& reader,
       newedge.set_edgeinfo_offset(edge_info_offset);
 
       // Add directed edge
-      tilebuilder->directededges().emplace_back(std::move(newedge));
+      tilebuilder->directededges().emplace_back(newedge);
     }
 
     // Add node transitions
@@ -527,11 +527,11 @@ void UpdateTransitConnections(GraphReader& reader, const std::string& old_to_new
         }
 
         // Add the directed edge to the local list
-        directededges.emplace_back(std::move(directededge));
+        directededges.emplace_back(directededge);
       }
 
       // Add the node to the local list
-      nodes.emplace_back(std::move(nodeinfo));
+      nodes.emplace_back(nodeinfo);
     }
     tilebuilder.Update(nodes, directededges);
   }

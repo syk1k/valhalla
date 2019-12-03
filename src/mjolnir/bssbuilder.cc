@@ -251,7 +251,7 @@ void create_bss_node_and_edges(GraphTileBuilder& tilebuilder_local,
       // Copy existing directed edges from this node and update any signs using
       // the directed edge index
       for (uint32_t i = 0, idx = nb.edge_index(); i < nb.edge_count(); i++, idx++) {
-        tilebuilder_local.directededges().emplace_back(std::move(currentedges[idx]));
+        tilebuilder_local.directededges().emplace_back(currentedges[idx]);
 
         // Update any signs that use this idx - increment their index by the
         // number of added edges
@@ -299,7 +299,7 @@ void create_bss_node_and_edges(GraphTileBuilder& tilebuilder_local,
         auto directededge =
             make_directed_edge({}, conn.startshape, conn, true, local_idx, oppo_local_idx);
         conn.start_to_bss_edge_idx = tilebuilder_local.directededges().size();
-        tilebuilder_local.directededges().emplace_back(std::move(directededge));
+        tilebuilder_local.directededges().emplace_back(directededge);
         ++added_edges;
       }
 
@@ -316,14 +316,14 @@ void create_bss_node_and_edges(GraphTileBuilder& tilebuilder_local,
         auto directededge =
             make_directed_edge({}, conn.endshape, conn, true, local_idx, oppo_local_idx);
         conn.end_to_bss_edge_idx = tilebuilder_local.directededges().size();
-        tilebuilder_local.directededges().emplace_back(std::move(directededge));
+        tilebuilder_local.directededges().emplace_back(directededge);
         ++added_edges;
       }
     }
     // Add the node and directed edges
     nb.set_edge_index(edge_index);
     nb.set_edge_count(tilebuilder_local.directededges().size() - edge_index);
-    tilebuilder_local.nodes().emplace_back(std::move(nb));
+    tilebuilder_local.nodes().emplace_back(nb);
   }
 
   for (const auto& conn : new_connections) {
@@ -383,7 +383,7 @@ void create_bss_node_and_edges(GraphTileBuilder& tilebuilder_local,
                                                              conn.startshape.rend()},
                                         conn.names, 0, added);
       directededge.set_edgeinfo_offset(edge_info_offset);
-      tilebuilder_local.directededges().emplace_back(std::move(directededge));
+      tilebuilder_local.directededges().emplace_back(directededge);
       ++added_edges;
     }
 
@@ -398,10 +398,10 @@ void create_bss_node_and_edges(GraphTileBuilder& tilebuilder_local,
           tilebuilder_local.AddEdgeInfo(0, new_bss_node_graphid, conn.endnode, conn.wayid, 0, 0, 0,
                                         conn.endshape, conn.names, 0, added);
       directededge.set_edgeinfo_offset(edge_info_offset);
-      tilebuilder_local.directededges().emplace_back(std::move(directededge));
+      tilebuilder_local.directededges().emplace_back(directededge);
       ++added_edges;
     }
-    tilebuilder_local.nodes().emplace_back(std::move(new_bss_node));
+    tilebuilder_local.nodes().emplace_back(new_bss_node);
     ++added_nodes;
   }
   LOG_INFO(std::string("Added: ") + std::to_string(added_edges) + " edges and " +

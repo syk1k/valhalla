@@ -155,7 +155,7 @@ void FilterTiles(GraphReader& reader,
         endnode.push_back(directededge->endnode());
 
         // Add directed edge
-        tilebuilder.directededges().emplace_back(std::move(newedge));
+        tilebuilder.directededges().emplace_back(newedge);
         edge_count++;
       }
 

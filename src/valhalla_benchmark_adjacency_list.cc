@@ -43,7 +43,7 @@ int Benchmark(const uint32_t n, const float maxcost, const float bucketsize) {
   for (uint32_t i = 0; i < n; i++) {
     EdgeLabel el;
     el.SetSortCost(costs[i]);
-    pqueue.push(std::move(el));
+    pqueue.push(el);
   }
 
   uint32_t count = 0;
@@ -74,7 +74,7 @@ int Benchmark(const uint32_t n, const float maxcost, const float bucketsize) {
   for (uint32_t i = 0; i < n; i++) {
     EdgeLabel el;
     el.SetSortCost(costs[i]);
-    edgelabels.push_back(std::move(el));
+    edgelabels.push_back(el);
     adjlist.add(i);
   }
 

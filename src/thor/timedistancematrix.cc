@@ -456,7 +456,7 @@ void TimeDistanceMatrix::SetOriginOneToMany(GraphReader& graphreader,
     // of the path. Set the origin flag
     EdgeLabel edge_label(kInvalidLabel, edgeid, directededge, cost, cost.cost, 0.0f, mode_, d);
     edge_label.set_origin();
-    edgelabels_.push_back(std::move(edge_label));
+    edgelabels_.push_back(edge_label);
     adjacencylist_->add(edgelabels_.size() - 1);
   }
 }
@@ -506,7 +506,7 @@ void TimeDistanceMatrix::SetOriginManyToOne(GraphReader& graphreader,
     // TODO - restrictions?
     EdgeLabel edge_label(kInvalidLabel, opp_edge_id, opp_dir_edge, cost, cost.cost, 0.0f, mode_, d);
     edge_label.set_origin();
-    edgelabels_.push_back(std::move(edge_label));
+    edgelabels_.push_back(edge_label);
     adjacencylist_->add(edgelabels_.size() - 1);
   }
 }

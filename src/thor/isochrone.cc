@@ -980,7 +980,7 @@ void Isochrone::UpdateIsoTile(const EdgeLabel& pred,
     } else {
       // Find intersecting tiles (using a Bresenham method)
       auto tiles = isotile_->Intersect(std::list<PointLL>{ll0, ll});
-      for (auto t : tiles) {
+      for (const auto& t : tiles) {
         isotile_->SetIfLessThan(t.first, secs1 * kMinPerSec);
       }
     }
@@ -1021,7 +1021,7 @@ void Isochrone::UpdateIsoTile(const EdgeLabel& pred,
     } else {
       // Find intersecting tiles (using a Bresenham method)
       auto tiles = isotile_->Intersect(std::list<PointLL>{*itr1, *itr2});
-      for (auto t : tiles) {
+      for (const auto& t : tiles) {
         isotile_->SetIfLessThan(t.first, minutes);
       }
     }
@@ -1090,7 +1090,7 @@ void Isochrone::SetOriginLocations(
       edge_label.set_origin();
 
       // Add EdgeLabel to the adjacency list
-      edgelabels_.push_back(std::move(edge_label));
+      edgelabels_.push_back(edge_label);
       adjacencylist_->add(idx);
       edgestatus_.Set(edgeid, EdgeSet::kTemporary, idx, tile);
     }
@@ -1169,7 +1169,7 @@ void Isochrone::SetOriginLocationsMM(
       edge_label.set_origin();
 
       // Add EdgeLabel to the adjacency list
-      mmedgelabels_.push_back(std::move(edge_label));
+      mmedgelabels_.push_back(edge_label);
       adjacencylist_->add(idx);
     }
 

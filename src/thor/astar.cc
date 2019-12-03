@@ -451,7 +451,7 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
 
     // Add EdgeLabel to the adjacency list
     uint32_t idx = edgelabels_.size();
-    edgelabels_.push_back(std::move(edge_label));
+    edgelabels_.push_back(edge_label);
     adjacencylist_->add(idx);
 
     // DO NOT SET EdgeStatus - it messes up trivial paths with oneways
