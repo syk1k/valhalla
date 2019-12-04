@@ -320,9 +320,8 @@ void assert_is_trivial_path(valhalla::Location& origin,
 }
 
 // Adds edge to location
-void add(GraphId edge_id, float percent_along, const PointLL& ll, valhalla::Location& location, GraphId end_node) {
+void add(GraphId edge_id, float percent_along, const PointLL& ll, valhalla::Location& location) {
   location.mutable_path_edges()->Add()->set_graph_id(edge_id);
-  //location.mutable_path_edges()->rbegin()->set_end_node(end_node);  // <-- Added set_end_node
   location.mutable_path_edges()->rbegin()->set_percent_along(percent_along);
   location.mutable_path_edges()->rbegin()->mutable_ll()->set_lng(ll.first);
   location.mutable_path_edges()->rbegin()->mutable_ll()->set_lat(ll.second);
@@ -340,82 +339,82 @@ void TestTrivialPath() {
   valhalla::Location origin;
   origin.mutable_ll()->set_lng(a.second.first);
   origin.mutable_ll()->set_lat(a.second.second);
-  add(tile_id + uint64_t(1), 0.0f, a.second, origin, c.first);
-  add(tile_id + uint64_t(4), 1.0f, a.second, origin, c.first);
-  add(tile_id + uint64_t(0), 0.0f, a.second, origin, b.first);
-  add(tile_id + uint64_t(2), 1.0f, a.second, origin, b.first);  // <--- In SetOrigin, we seem to iterate over these, but all have invalid end_node's (tile being nullptr)
+  add(tile_id + uint64_t(1), 0.0f, a.second, origin);
+  add(tile_id + uint64_t(4), 1.0f, a.second, origin);
+  add(tile_id + uint64_t(0), 0.0f, a.second, origin);
+  add(tile_id + uint64_t(2), 1.0f, a.second, origin);  // <--- In SetOrigin, we seem to iterate over these, but all have invalid end_node's (tile being nullptr)
 
   valhalla::Location dest;
   dest.mutable_ll()->set_lng(b.second.first);
   dest.mutable_ll()->set_lat(b.second.second);
-  add(tile_id + uint64_t(3), 0.0f, b.second, dest, d.first);
-  add(tile_id + uint64_t(7), 1.0f, b.second, dest, d.first);
-  add(tile_id + uint64_t(2), 0.0f, b.second, dest, a.first);
-  add(tile_id + uint64_t(0), 1.0f, b.second, dest, a.first);
+  add(tile_id + uint64_t(3), 0.0f, b.second, dest);
+  add(tile_id + uint64_t(7), 1.0f, b.second, dest);
+  add(tile_id + uint64_t(2), 0.0f, b.second, dest);
+  add(tile_id + uint64_t(0), 1.0f, b.second, dest);
 
   // this should go along the path from A to B
   assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 0);
 }
 
-//void TestPartialDuration() {
-//  // Tests that a partial duration is returned when starting on a partial edge
-//  using node::a;
-//  using node::b;
-//  using node::d;
-//  float partial_dist = 0.; //(a.second.first - loc_on_partial_edge.ll().lat());
+void TestPartialDuration() {
+  // Tests that a partial duration is returned when starting on a partial edge
+  using node::a;
+  using node::b;
+  using node::d;
+  float partial_dist = 0.; //(a.second.first - loc_on_partial_edge.ll().lat());
 
-//  valhalla::Location origin;
-//  origin.mutable_ll()->set_lng(a.second.first);
-//  origin.mutable_ll()->set_lat(a.second.second);
-//  add(tile_id + uint64_t(0), partial_dist, a.second, origin);
-//  add(tile_id + uint64_t(2), 1. - partial_dist, a.second, origin);
-//  add(tile_id + uint64_t(1), 0.0f, a.second, origin);
-//  add(tile_id + uint64_t(4), 1.0f, a.second, origin);
+  valhalla::Location origin;
+  origin.mutable_ll()->set_lng(a.second.first);
+  origin.mutable_ll()->set_lat(a.second.second);
+  add(tile_id + uint64_t(0), partial_dist, a.second, origin);
+  add(tile_id + uint64_t(2), 1. - partial_dist, a.second, origin);
+  add(tile_id + uint64_t(1), 0.0f, a.second, origin);
+  add(tile_id + uint64_t(4), 1.0f, a.second, origin);
 
-//  valhalla::Location middle;
-//  middle.mutable_ll()->set_lng(b.second.first);
-//  middle.mutable_ll()->set_lat(b.second.second);
-//  add(tile_id + uint64_t(2), 0.0f, b.second, middle);
-//  add(tile_id + uint64_t(0), 1.0f, b.second, middle);
-//  add(tile_id + uint64_t(3), 0.0f, b.second, middle);
-//  add(tile_id + uint64_t(7), 1.0f, b.second, middle);
+  valhalla::Location middle;
+  middle.mutable_ll()->set_lng(b.second.first);
+  middle.mutable_ll()->set_lat(b.second.second);
+  add(tile_id + uint64_t(2), 0.0f, b.second, middle);
+  add(tile_id + uint64_t(0), 1.0f, b.second, middle);
+  add(tile_id + uint64_t(3), 0.0f, b.second, middle);
+  add(tile_id + uint64_t(7), 1.0f, b.second, middle);
 
-//  valhalla::Location dest;
-//  dest.mutable_ll()->set_lng(d.second.first);
-//  dest.mutable_ll()->set_lat(d.second.second);
-//  add(tile_id + uint64_t(6), 0.0f, d.second, dest);
-//  add(tile_id + uint64_t(5), 1.0f, d.second, dest);
-//  add(tile_id + uint64_t(7), 0.0f, d.second, dest);
-//  add(tile_id + uint64_t(3), 1.0f, d.second, dest);
+  valhalla::Location dest;
+  dest.mutable_ll()->set_lng(d.second.first);
+  dest.mutable_ll()->set_lat(d.second.second);
+  add(tile_id + uint64_t(6), 0.0f, d.second, dest);
+  add(tile_id + uint64_t(5), 1.0f, d.second, dest);
+  add(tile_id + uint64_t(7), 0.0f, d.second, dest);
+  add(tile_id + uint64_t(3), 1.0f, d.second, dest);
 
-//  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::DurationEqualTo, 2);
-//}
+  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::DurationEqualTo, 2);
+}
 
 // test that a path from E to F succeeds, even if the edges from E and F
 // to G appear first in the PathLocation.
-//void TestTrivialPathTriangle() {
-//  using node::e;
-//  using node::f;
+void TestTrivialPathTriangle() {
+  using node::e;
+  using node::f;
 
-//  valhalla::Location origin;
-//  origin.mutable_ll()->set_lng(e.second.first);
-//  origin.mutable_ll()->set_lat(e.second.second);
-//  add(tile_id + uint64_t(9), 0.0f, e.second, origin);
-//  add(tile_id + uint64_t(12), 1.0f, e.second, origin);
-//  add(tile_id + uint64_t(8), 0.0f, e.second, origin);
-//  add(tile_id + uint64_t(10), 1.0f, e.second, origin);
+  valhalla::Location origin;
+  origin.mutable_ll()->set_lng(e.second.first);
+  origin.mutable_ll()->set_lat(e.second.second);
+  add(tile_id + uint64_t(9), 0.0f, e.second, origin);
+  add(tile_id + uint64_t(12), 1.0f, e.second, origin);
+  add(tile_id + uint64_t(8), 0.0f, e.second, origin);
+  add(tile_id + uint64_t(10), 1.0f, e.second, origin);
 
-//  valhalla::Location dest;
-//  dest.mutable_ll()->set_lng(f.second.first);
-//  dest.mutable_ll()->set_lat(f.second.second);
-//  add(tile_id + uint64_t(11), 0.0f, f.second, dest);
-//  add(tile_id + uint64_t(13), 1.0f, f.second, dest);
-//  add(tile_id + uint64_t(10), 0.0f, f.second, dest);
-//  add(tile_id + uint64_t(8), 1.0f, f.second, dest);
+  valhalla::Location dest;
+  dest.mutable_ll()->set_lng(f.second.first);
+  dest.mutable_ll()->set_lat(f.second.second);
+  add(tile_id + uint64_t(11), 0.0f, f.second, dest);
+  add(tile_id + uint64_t(13), 1.0f, f.second, dest);
+  add(tile_id + uint64_t(10), 0.0f, f.second, dest);
+  add(tile_id + uint64_t(8), 1.0f, f.second, dest);
 
-//  // this should go along the path from E to F
-//  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
-//}
+  // this should go along the path from E to F
+  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
+}
 
 void trivial_path_no_uturns(const std::string& config_file) {
   boost::property_tree::ptree conf;
@@ -913,19 +912,19 @@ int main() {
   suite.test(TEST_CASE(make_tile));
 
   suite.test(TEST_CASE(TestTrivialPath));
-  //suite.test(TEST_CASE(TestTrivialPathTriangle));
+  suite.test(TEST_CASE(TestTrivialPathTriangle));
 
-  //suite.test(TEST_CASE(DoConfig));
-  //suite.test(TEST_CASE(TestTrivialPathNoUturns));
+  suite.test(TEST_CASE(DoConfig));
+  suite.test(TEST_CASE(TestTrivialPathNoUturns));
 
   //suite.test(TEST_CASE(TestPartialDuration));
 
-  //suite.test(TEST_CASE(test_deadend));
-  //suite.test(TEST_CASE(test_deadend_timedep_forward));
-  //suite.test(TEST_CASE(test_deadend_timedep_reverse));
-  //suite.test(TEST_CASE(test_oneway));
-  //suite.test(TEST_CASE(test_oneway_wrong_way));
-  //suite.test(TEST_CASE(test_time_restricted_road));
+  suite.test(TEST_CASE(test_deadend));
+  suite.test(TEST_CASE(test_deadend_timedep_forward));
+  suite.test(TEST_CASE(test_deadend_timedep_reverse));
+  suite.test(TEST_CASE(test_oneway));
+  suite.test(TEST_CASE(test_oneway_wrong_way));
+  suite.test(TEST_CASE(test_time_restricted_road));
 
   return suite.tear_down();
 }
