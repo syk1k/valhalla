@@ -110,7 +110,17 @@ std::pair<vb::GraphId, vm::PointLL> f({tile_id.tileid(), tile_id.level(), 5}, {0
 std::pair<vb::GraphId, vm::PointLL> g({tile_id.tileid(), tile_id.level(), 6}, {0.05, 0.11});
 } // namespace node
 
+bool file_exists(const char* fname) {
+  std::ifstream f(fname);
+  return f.good();
+}
+
 void make_tile() {
+  // Don't recreate tiles if they already exist (leads to silent corruption of tiles)
+  if (file_exists( VALHALLA_SOURCE_DIR "/test/fake_tiles_astar/2/000/519/120.gph")) {
+    return;
+  }
+
   using namespace valhalla::mjolnir;
 
   GraphTileBuilder tile(test_dir, tile_id, false);
@@ -251,6 +261,9 @@ void assert_is_trivial_path(valhalla::Location& origin,
   if (tile == nullptr) {
     throw std::runtime_error("Unable to load test tile! Please read the comment at the top of this "
                              "file about generating the test tiles.");
+  }
+  if (tile->header()->directededgecount() != 14) {
+    throw std::runtime_error("test-tiles does not contain expected number of edges");
   }
 
   Options options;
