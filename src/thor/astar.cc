@@ -383,9 +383,15 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
       continue;
     }
 
+    // edgeid.id() seems to match the id's we set in test
+
     // Get the directed edge
     const GraphTile* tile = graphreader.GetGraphTile(edgeid);
-    const DirectedEdge* directededge = tile->directededge(edgeid);
+
+    // tile->id().tileid() matches edgeid.tileid()
+
+    const DirectedEdge* directededge = tile->directededge(edgeid); // <-- directededge seems broken, all end-nodes are the same
+
 
     // Get the tile at the end node. Skip if tile not found as we won't be
     // able to expand from this origin edge.
