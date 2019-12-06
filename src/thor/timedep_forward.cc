@@ -149,15 +149,27 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
                                                const valhalla::Location& destination,
                                                std::pair<int32_t, float>& best_path) {
 
+  int dummy = 0;
+  if (meta.edge_id.id() == 2485 && pred.edgeid().id() == 511) {
+    dummy = 2 + 1;
+  }
+
   // Skip shortcut edges for time dependent routes. Also skip this edge if permanently labeled
   // (best path already found to this directed edge), if no access is allowed to this edge
   // (based on costing method), or if a complex restriction exists.
   bool has_time_restrictions = false;
-  if (meta.edge->is_shortcut() || meta.edge_status->set() == EdgeSet::kPermanent ||
-      !costing_->Allowed(meta.edge, pred, tile, meta.edge_id, localtime, nodeinfo->timezone(),
-                         has_time_restrictions) ||
-      costing_->Restricted(meta.edge, pred, edgelabels_, tile, meta.edge_id, true, localtime,
+  if (!costing_->Allowed(meta.edge, pred, tile, meta.edge_id, localtime, nodeinfo->timezone(),
+                         has_time_restrictions)) {
+    return false;
+  }
+  if (costing_->Restricted(meta.edge, pred, edgelabels_, tile, meta.edge_id, true, localtime,
                            nodeinfo->timezone())) {
+    return false;
+  }
+  if (meta.edge_status->set() == EdgeSet::kPermanent) {
+    //return false;
+  }
+  if (meta.edge->is_shortcut()) {
     return false;
   }
 
@@ -200,7 +212,8 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
     if (newcost.cost < lab.cost().cost) {
       float newsortcost = lab.sortcost() - (lab.cost().cost - newcost.cost);
       adjacencylist_->decrease(meta.edge_status->index(), newsortcost);
-      lab.Update(pred_idx, newcost, newsortcost, has_time_restrictions);
+      lab.Update(pred_idx, newcost, newsortcost, has_time_restrictions,
+                 meta.edge->part_of_complex_restriction());
     }
     return true;
   }
@@ -327,7 +340,7 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
 
     // Mark the edge as permanently labeled. Do not do this for an origin
     // edge (this will allow loops/around the block cases)
-    if (!pred.origin()) {
+    if (!pred.origin() && !pred.on_complex_rest()) {
       edgestatus_.Update(pred.edgeid(), EdgeSet::kPermanent);
     }
 

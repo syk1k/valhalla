@@ -70,11 +70,13 @@ public:
   void Update(const uint32_t predecessor,
               const Cost& cost,
               const float sortcost,
-              const bool has_time_restrictions) {
+              const bool has_time_restrictions,
+              const bool on_complex_rest) {
     predecessor_ = predecessor;
     cost_ = cost;
     sortcost_ = sortcost;
     has_time_restrictions_ = has_time_restrictions;
+    on_complex_rest_ = on_complex_rest;
   }
 
   /**
@@ -91,12 +93,14 @@ public:
               const Cost& cost,
               const float sortcost,
               const uint32_t path_distance,
-              const bool has_time_restrictions) {
+              const bool has_time_restrictions,
+              const bool on_complex_rest) {
     predecessor_ = predecessor;
     cost_ = cost;
     sortcost_ = sortcost;
     path_distance_ = path_distance;
     has_time_restrictions_ = has_time_restrictions;
+    on_complex_rest_ = on_complex_rest;
   }
 
   /**

@@ -121,8 +121,8 @@ void Configure(const LoggingConfig& config);
 #else
 #ifdef LOGGING_LEVEL_ERROR
 #define LOG_ERROR(x)                                                                                 \
-  ::valhalla::midgard::logging::GetLogger().Log(std::string(__FILE__) ": " +                         \
-                                                    +std::to_string(__LINE__) + ": " + x,            \
+  ::valhalla::midgard::logging::GetLogger().Log(std::string(__FILE__) + ": " +                       \
+                                                    std::to_string(__LINE__) + ": " + x,             \
                                                 ::valhalla::midgard::logging::LogLevel::ERROR)
 #else
 #define LOG_ERROR(x)

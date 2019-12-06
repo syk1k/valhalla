@@ -6,7 +6,9 @@
 #include "midgard/logging.h"
 #include "sif/edgelabel.h"
 #include <algorithm>
+#include <bits/stdint-uintn.h>
 #include <map>
+#include <string>
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -228,8 +230,10 @@ inline bool BidirectionalAStar::ExpandForwardInner(GraphReader& graphreader,
     return true; // This is an edge we _could_ have expanded, so return true
   }
   bool has_time_restrictions = false;
+  bool is_restricted =
+      costing_->Restricted(meta.edge, pred, edgelabels_forward_, tile, meta.edge_id, true);
   if (!costing_->Allowed(meta.edge, pred, tile, meta.edge_id, 0, 0, has_time_restrictions) ||
-      costing_->Restricted(meta.edge, pred, edgelabels_forward_, tile, meta.edge_id, true)) {
+      is_restricted) {
     return false;
   }
 
@@ -422,9 +426,15 @@ inline bool BidirectionalAStar::ExpandReverseInner(GraphReader& graphreader,
   // Skip this edge if no access is allowed (based on costing method)
   // or if a complex restriction prevents transition onto this edge.
   bool has_time_restrictions = false;
-  if (!costing_->AllowedReverse(meta.edge, pred, opp_edge, t2, opp_edge_id, 0, 0,
-                                has_time_restrictions) ||
-      costing_->Restricted(meta.edge, pred, edgelabels_reverse_, tile, meta.edge_id, false)) {
+  bool is_allowed = costing_->AllowedReverse(meta.edge, pred, opp_edge, t2, opp_edge_id, 0, 0,
+                                             has_time_restrictions);
+  int dummy = 0;
+  if (meta.edge_id.id() == 218 || meta.edge_id.id() == 219) {
+    dummy = 2 + 1;
+  }
+  bool is_restricted =
+      costing_->Restricted(meta.edge, pred, edgelabels_reverse_, tile, meta.edge_id, false);
+  if (!is_allowed || is_restricted) {
     return false;
   }
 
@@ -900,6 +910,8 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
     const BDEdgeLabel& edgelabel = edgelabels_forward_[edgelabel_index];
     path.emplace_back(edgelabel.mode(), edgelabel.cost().secs, edgelabel.edgeid(), 0,
                       edgelabel.cost().cost, edgelabel.has_time_restriction());
+    LOG_ERROR("FormPath forward: edge_id: " + std::to_string(edgelabel.edgeid().id()) + "," +
+              std::to_string(uint64_t(edgelabel.edgeid())));
 
     // Check if this is a ferry
     if (edgelabel.use() == Use::kFerry) {
@@ -951,7 +963,16 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
     } else {
       cost += edgelabel.cost() - edgelabels_reverse_[predidx].cost();
     }
+    GraphId opp_edge_id = {};
+    const GraphTile* t2 = graphreader.GetGraphTile(edgelabel.endnode());
+    if (t2 != nullptr) {
+      auto rev_edge = graphreader.directededge(edgelabel.edgeid());
+      opp_edge_id = t2->GetOpposingEdgeId(rev_edge);
+    }
+
     cost += tc;
+    LOG_ERROR("FormPath reverse: edge_id: " + std::to_string(opp_edge_id.id()) + "," +
+              std::to_string(uint64_t(edgelabel.edgeid())));
     path.emplace_back(edgelabel.mode(), cost.secs, edgelabel.opp_edgeid(), 0, cost.cost,
                       edgelabel.has_time_restriction());
 

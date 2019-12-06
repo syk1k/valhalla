@@ -315,6 +315,10 @@ public:
               match = false;
               break;
             }
+            int dummy = 0;
+            if (edgeid.id() == 2485 && pred.edgeid().id() == 511 && next_pred->edgeid().id() == 505) {
+              dummy = 2 + 1;
+            }
             next_pred = next_predecessor(next_pred);
           }
         }

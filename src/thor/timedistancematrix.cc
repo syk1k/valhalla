@@ -113,7 +113,8 @@ void TimeDistanceMatrix::ExpandForward(GraphReader& graphreader,
       if (newcost.cost < lab.cost().cost) {
         float newsortcost = lab.sortcost() - (lab.cost().cost - newcost.cost);
         adjacencylist_->decrease(es->index(), newsortcost);
-        lab.Update(pred_idx, newcost, newsortcost, distance, has_time_restrictions);
+        lab.Update(pred_idx, newcost, newsortcost, distance, has_time_restrictions,
+                   directededge->part_of_complex_restriction());
       }
       continue;
     }
@@ -274,7 +275,8 @@ void TimeDistanceMatrix::ExpandReverse(GraphReader& graphreader,
       if (newcost.cost < lab.cost().cost) {
         float newsortcost = lab.sortcost() - (lab.cost().cost - newcost.cost);
         adjacencylist_->decrease(es->index(), newsortcost);
-        lab.Update(pred_idx, newcost, newsortcost, distance);
+        lab.Update(pred_idx, newcost, newsortcost, distance,
+                   directededge->part_of_complex_restriction());
         lab.set_has_time_restriction(has_time_restrictions);
       }
       continue;
