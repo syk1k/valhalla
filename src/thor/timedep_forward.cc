@@ -1,6 +1,7 @@
 #include "baldr/datetime.h"
 #include "midgard/constants.h"
 #include "midgard/logging.h"
+#include "midgard/encoded.h"
 #include "thor/timedep.h"
 #include <algorithm>
 #include <iostream> // TODO remove if not needed
@@ -30,6 +31,17 @@ TimeDepForward::TimeDepForward() : AStarPathAlgorithm() {
 // Destructor
 TimeDepForward::~TimeDepForward() {
   Clear();
+}
+
+std::string get_shape(valhalla::baldr::GraphReader& graphreader,
+                      const valhalla::baldr::GraphId& edgeid) {
+  const GraphTile* tile = graphreader.GetGraphTile(edgeid);
+  const DirectedEdge* edge = tile->directededge(edgeid);
+  auto shape = tile->edgeinfo(edge->edgeinfo_offset()).shape();
+  if (!edge->forward()) {
+    std::reverse(shape.begin(), shape.end());
+  }
+  return midgard::encode(shape);
 }
 
 // Expand from the node along the forward search path. Immediately expands
@@ -137,6 +149,7 @@ bool TimeDepForward::ExpandForward(GraphReader& graphreader,
 // the edge described in `meta` should be placed on the stack
 // as well as doing just that.
 //
+constexpr uint32_t LOG_EDGE_ID = 511;
 // Returns true if any edge _could_ have been expanded after restrictions etc.
 inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
                                                const EdgeLabel& pred,
@@ -152,6 +165,14 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   // Skip shortcut edges for time dependent routes. Also skip this edge if permanently labeled
   // (best path already found to this directed edge), if no access is allowed to this edge
   // (based on costing method), or if a complex restriction exists.
+  int dummy = 0;
+  if (meta.edge_id.id() == LOG_EDGE_ID) {
+    LOG_ERROR(std::to_string(meta.edge_id.id())
+        +".part_of_complex_restriction: "+std::to_string(meta.edge->part_of_complex_restriction())
+        +" pred:"+std::to_string(pred.edgeid().id())
+        + ", pred_shape: "+get_shape(graphreader, pred.edgeid()));
+    dummy = 1+2;
+  }
   bool has_time_restrictions = false;
   if (meta.edge->is_shortcut() || meta.edge_status->set() == EdgeSet::kPermanent ||
       !costing_->Allowed(meta.edge, pred, tile, meta.edge_id, localtime, nodeinfo->timezone(),
@@ -325,9 +346,12 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
       }
     }
 
+    if (pred.edgeid().id() == LOG_EDGE_ID) {
+      LOG_ERROR("GetBestPath: "+std::to_string(pred.on_complex_rest()));
+    }
     // Mark the edge as permanently labeled. Do not do this for an origin
     // edge (this will allow loops/around the block cases)
-    if (!pred.origin()) {
+    if (!pred.origin() && !pred.on_complex_rest()) {
       edgestatus_.Update(pred.edgeid(), EdgeSet::kPermanent);
     }
 
