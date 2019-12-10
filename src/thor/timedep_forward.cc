@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream> // TODO remove if not needed
 #include <map>
+#include <string>
 
 using namespace valhalla::baldr;
 using namespace valhalla::sif;
@@ -162,15 +163,18 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   }
 
   // Compute the cost to the end of this edge
+  LOG_WARN("ExpandInner: edge id: "+std::to_string(meta.edge_id.id()));
   Cost newcost = pred.cost() + costing_->EdgeCost(meta.edge, tile, seconds_of_week) +
                  costing_->TransitionCost(meta.edge, nodeinfo, pred);
 
+  LOG_ERROR("Edge-id:" + std::to_string(meta.edge_id.id())+", localtime: "+std::to_string(localtime)+", seconds_of_week: "+std::to_string(seconds_of_week)+", secs: "+std::to_string(newcost.secs));
+
   // If this edge is a destination, subtract the partial/remainder cost
   // (cost from the dest. location to the end of the edge).
-  auto p = destinations_.find(meta.edge_id);
-  if (p != destinations_.end()) {
+  auto dest_edge = destinations_.find(meta.edge_id);
+  if (dest_edge != destinations_.end()) {
     // Subtract partial cost and time
-    newcost -= p->second;
+    newcost -= dest_edge->second;
 
     // Find the destination edge and update cost to include the edge score.
     // Note - with high edge scores the convergence test fails some routes
@@ -210,7 +214,7 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   // end node of the directed edge.
   float dist = 0.0f;
   float sortcost = newcost.cost;
-  if (p == destinations_.end()) {
+  if (dest_edge == destinations_.end()) {
     const GraphTile* t2 =
         meta.edge->leaves_tile() ? graphreader.GetGraphTile(meta.edge->endnode()) : tile;
     if (t2 == nullptr) {
@@ -258,10 +262,14 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
   Init(origin_new, destination_new);
   float mindist = astarheuristic_.GetDistance(origin_new);
 
+  // Set seconds from beginning of the week
+  seconds_of_week_ = DateTime::day_of_week(origin.date_time()) * midgard::kSecondsPerDay +
+                     DateTime::seconds_from_midnight(origin.date_time());
+
   // Initialize the origin and destination locations. Initialize the
   // destination first in case the origin edge includes a destination edge.
   uint32_t density = SetDestination(graphreader, destination);
-  SetOrigin(graphreader, origin, destination);
+  SetOrigin(graphreader, origin, destination, seconds_of_week_);
 
   // Set the origin timezone to be the timezone at the end node
   origin_tz_index_ = edgelabels_.size() == 0 ? 0 : GetTimezone(graphreader, edgelabels_[0].endnode());
@@ -274,10 +282,6 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
   uint64_t start_time =
       DateTime::seconds_since_epoch(origin.date_time(),
                                     DateTime::get_tz_db().from_index(origin_tz_index_));
-
-  // Set seconds from beginning of the week
-  seconds_of_week_ = DateTime::day_of_week(origin.date_time()) * midgard::kSecondsPerDay +
-                     DateTime::seconds_from_midnight(origin.date_time());
 
   // Update hierarchy limits
   ModifyHierarchyLimits(mindist, density);

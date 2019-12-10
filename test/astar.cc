@@ -24,10 +24,14 @@
 #include "sif/pedestriancost.h"
 #include "thor/astar.h"
 #include "thor/attributes_controller.h"
+#include "thor/bidirectional_astar.h"
+#include "thor/pathalgorithm.h"
+#include "thor/timedep.h"
 #include "thor/triplegbuilder.h"
 #include "thor/worker.h"
 #include "tyr/serializers.h"
 
+#include <stdexcept>
 #include <valhalla/proto/directions.pb.h>
 #include <valhalla/proto/options.pb.h>
 #include <valhalla/proto/trip.pb.h>
@@ -122,6 +126,7 @@ void make_tile() {
     node_builder.set_access(vb::kAllAccess);
     node_builder.set_edge_count(edge_count);
     node_builder.set_edge_index(edge_index);
+    node_builder.set_timezone(1);
     edge_index += edge_count;
     tile.nodes().emplace_back(node_builder);
   };
@@ -134,6 +139,8 @@ void make_tile() {
                                      false);
     edge_builder.set_opp_index(opposing);
     edge_builder.set_forwardaccess(vb::kAllAccess);
+    edge_builder.set_free_flow_speed(100);
+    edge_builder.set_constrained_flow_speed(10);
     std::vector<vm::PointLL> shape = {u.second, u.second.MidPoint(v.second), v.second};
     if (!forward) {
       std::reverse(shape.begin(), shape.end());
@@ -206,16 +213,30 @@ void write_config(const std::string& filename) {
 }
 
 void create_costing_options(Options& options) {
-  for (const auto costing : {auto_, auto_shorter, bicycle, bus, hov, motor_scooter, multimodal,
-                             pedestrian, transit, truck, motorcycle, auto_data_fix}) {
-    if (costing == pedestrian) {
-      const rapidjson::Document doc;
-      vs::ParsePedestrianCostOptions(doc, "/costing_options/pedestrian",
-                                     options.add_costing_options());
-    } else {
-      options.add_costing_options();
-    }
-  }
+  // Add options in the order specified
+  //  for (const auto costing : {auto_, auto_shorter, bicycle, bus, hov,
+  //                              motor_scooter, multimodal, pedestrian, transit,
+  //                              truck, motorcycle, auto_data_fix}) {
+  // TODO - accept RapidJSON as argument.
+  const rapidjson::Document doc;
+  sif::ParseAutoCostOptions(doc, "/costing_options/auto", options.add_costing_options());
+  sif::ParseAutoShorterCostOptions(doc, "/costing_options/auto_shorter",
+                                   options.add_costing_options());
+  sif::ParseBicycleCostOptions(doc, "/costing_options/bicycle", options.add_costing_options());
+  sif::ParseBusCostOptions(doc, "/costing_options/bus", options.add_costing_options());
+  sif::ParseHOVCostOptions(doc, "/costing_options/hov", options.add_costing_options());
+  sif::ParseTaxiCostOptions(doc, "/costing_options/taxi", options.add_costing_options());
+  sif::ParseMotorScooterCostOptions(doc, "/costing_options/motor_scooter",
+                                    options.add_costing_options());
+  options.add_costing_options();
+  sif::ParsePedestrianCostOptions(doc, "/costing_options/pedestrian", options.add_costing_options());
+  sif::ParseTransitCostOptions(doc, "/costing_options/transit", options.add_costing_options());
+  sif::ParseTruckCostOptions(doc, "/costing_options/truck", options.add_costing_options());
+  sif::ParseMotorcycleCostOptions(doc, "/costing_options/motorcycle", options.add_costing_options());
+  sif::ParseAutoShorterCostOptions(doc, "/costing_options/auto_shorter",
+                                   options.add_costing_options());
+  sif::ParseAutoDataFixCostOptions(doc, "/costing_options/auto_data_fix",
+                                   options.add_costing_options());
 }
 
 enum class TrivialPathTest {
@@ -224,11 +245,13 @@ enum class TrivialPathTest {
 };
 
 // check that a path from origin to dest goes along the edge with expected_edge_index
-void assert_is_trivial_path(valhalla::Location& origin,
+void assert_is_trivial_path(vt::PathAlgorithm& astar,
+                            valhalla::Location& origin,
                             valhalla::Location& dest,
                             uint32_t expected_num_paths,
                             TrivialPathTest assert_type,
-                            uint32_t assert_type_value) {
+                            int32_t assert_type_value,
+                            vs::TravelMode mode = vs::TravelMode::kPedestrian) {
 
   // make the config file
   std::stringstream json;
@@ -239,8 +262,7 @@ void assert_is_trivial_path(valhalla::Location& origin,
   vb::GraphReader reader(conf);
   auto* tile = reader.GetGraphTile(tile_id);
   if (tile == nullptr) {
-    throw std::runtime_error("Unable to load test tile! Please read the comment at the top of this "
-                             "file about generating the test tiles.");
+    throw std::runtime_error("Unable to load test tile! Did `make_tile` run succesfully?");
   }
   if (tile->header()->directededgecount() != 14) {
     throw std::runtime_error("test-tiles does not contain expected number of edges");
@@ -252,23 +274,37 @@ void assert_is_trivial_path(valhalla::Location& origin,
 
   Options options;
   create_costing_options(options);
-  auto mode = vs::TravelMode::kPedestrian;
   vs::cost_ptr_t costs[int(vs::TravelMode::kMaxTravelMode)];
-  auto pedestrian = vs::CreatePedestrianCost(Costing::pedestrian, options);
-  costs[int(mode)] = pedestrian;
+  switch (mode) {
+    case vs::TravelMode::kPedestrian: {
+      auto pedestrian = vs::CreatePedestrianCost(Costing::pedestrian, options);
+      costs[int(mode)] = pedestrian;
+      break;
+    }
+    case vs::TravelMode::kDrive: {
+      auto car = vs::CreateAutoCost(Costing::auto_, options);
+      costs[int(mode)] = car;
+      break;
+    }
+    default:
+      throw std::runtime_error("Unhandled case");
+  }
   assert(bool(costs[int(mode)]));
+  assert(costs[int(mode)]->flow_mask() != 0);
 
-  vt::AStarPathAlgorithm astar;
   auto paths = astar.GetBestPath(origin, dest, reader, costs, mode);
 
-  uint32_t time = 0;
+  int32_t time = 0;
   for (const auto& path : paths) {
     for (const auto& p : path) {
       time += p.elapsed_time;
     }
+    for (const vt::PathInfo& subpath: path) {
+      LOG_INFO("Got path "+std::to_string(subpath.edgeid.id()));
+    }
     if (path.size() != expected_num_paths) {
       std::ostringstream ostr;
-      ostr << "Expected number of paths to be " << expected_num_paths << ", but got " << paths.size();
+      ostr << "Expected number of paths to be " << expected_num_paths << ", but got " << path.size();
       throw std::runtime_error(ostr.str());
     }
     break;
@@ -283,7 +319,7 @@ void assert_is_trivial_path(valhalla::Location& origin,
     case TrivialPathTest::MatchesEdge:
       // Grab time from an edge index
       const DirectedEdge* expected_edge = tile->directededge(assert_type_value);
-      auto expected_cost = pedestrian->EdgeCost(expected_edge, tile);
+      auto expected_cost = costs[int(mode)]->EdgeCost(expected_edge, tile);
       expected_time = expected_cost.cost;
       break;
   };
@@ -293,7 +329,7 @@ void assert_is_trivial_path(valhalla::Location& origin,
 
   if (time != expected_time) {
     std::ostringstream ostr;
-    ostr << "Expected time to be " << expected_time << ", but got " << time;
+    ostr << "Expected time to be " << expected_time << "s, but got " << time << "s";
     throw std::runtime_error(ostr.str());
   }
 }
@@ -332,7 +368,8 @@ void TestTrivialPath() {
   add(tile_id + uint64_t(0), 1.0f, b.second, dest);
 
   // this should go along the path from A to B
-  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 0);
+  vt::TimeDepForward astar;
+  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::DurationEqualTo, 360, vs::TravelMode::kDrive);
 }
 
 // test that a path from E to F succeeds, even if the edges from E and F
@@ -358,7 +395,8 @@ void TestTrivialPathTriangle() {
   add(tile_id + uint64_t(8), 1.0f, f.second, dest);
 
   // this should go along the path from E to F
-  assert_is_trivial_path(origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
+  vt::AStarPathAlgorithm astar;
+  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
 }
 
 void trivial_path_no_uturns(const std::string& config_file) {
@@ -852,21 +890,21 @@ void test_time_restricted_road() {
 int main() {
   test::suite suite("astar");
 
-  // TODO: move to mjolnir?
+  //// TODO: move to mjolnir?
   suite.test(TEST_CASE(make_tile));
 
   suite.test(TEST_CASE(TestTrivialPath));
-  suite.test(TEST_CASE(TestTrivialPathTriangle));
+  //suite.test(TEST_CASE(TestTrivialPathTriangle));
 
-  suite.test(TEST_CASE(DoConfig));
-  suite.test(TEST_CASE(TestTrivialPathNoUturns));
+  // suite.test(TEST_CASE(DoConfig));
+  // suite.test(TEST_CASE(TestTrivialPathNoUturns));
 
-  suite.test(TEST_CASE(test_deadend));
-  suite.test(TEST_CASE(test_deadend_timedep_forward));
-  suite.test(TEST_CASE(test_deadend_timedep_reverse));
-  suite.test(TEST_CASE(test_oneway));
-  suite.test(TEST_CASE(test_oneway_wrong_way));
-  suite.test(TEST_CASE(test_time_restricted_road));
+  // suite.test(TEST_CASE(test_deadend));
+  // suite.test(TEST_CASE(test_deadend_timedep_forward));
+  // suite.test(TEST_CASE(test_deadend_timedep_reverse));
+  // suite.test(TEST_CASE(test_oneway));
+  // suite.test(TEST_CASE(test_oneway_wrong_way));
+  // suite.test(TEST_CASE(test_time_restricted_road));
 
   return suite.tear_down();
 }

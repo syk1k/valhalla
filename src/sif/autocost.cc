@@ -426,6 +426,7 @@ Cost AutoCost::EdgeCost(const baldr::DirectedEdge* edge,
                         const uint32_t seconds) const {
   auto speed = tile->GetSpeed(edge, flow_mask_, seconds);
   float factor = (edge->use() == Use::kFerry) ? ferry_factor_ : density_factor_[edge->density()];
+  LOG_WARN("speed: "+std::to_string(speed)+", flow_mask_: "+std::to_string(flow_mask_));
 
   factor += highway_factor_ * kHighwayFactor[static_cast<uint32_t>(edge->classification())] +
             surface_factor_ * kSurfaceFactor[static_cast<uint32_t>(edge->surface())];
