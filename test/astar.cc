@@ -369,7 +369,7 @@ void TestTrivialPath() {
 
   // this should go along the path from A to B
   vt::TimeDepForward astar;
-  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::MatchesEdge, 0, vs::TravelMode::kDrive);
+  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::DurationEqualTo, 360, vs::TravelMode::kDrive);
 }
 
 // test that a path from E to F succeeds, even if the edges from E and F

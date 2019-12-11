@@ -149,7 +149,8 @@ protected:
    */
   virtual void SetOrigin(baldr::GraphReader& graphreader,
                          valhalla::Location& origin,
-                         const valhalla::Location& dest);
+                         const valhalla::Location& dest,
+                         const uint32_t seconds_of_week);
 
   /**
    * Set the destination edge(s).
