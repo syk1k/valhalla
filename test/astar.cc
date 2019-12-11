@@ -87,7 +87,7 @@ namespace {
 //      \ /
 //       g
 //
-std::string test_dir = "test/fake_tiles_astar";
+std::string test_dir = "test/data/fake_tiles_astar";
 vb::GraphId tile_id = vb::TileHierarchy::GetGraphId({.125, .125}, 2);
 
 namespace node {
@@ -108,7 +108,8 @@ bool file_exists(const std::string& fname) {
 
 void make_tile() {
   // Don't recreate tiles if they already exist (leads to silent corruption of tiles)
-  if (file_exists(test_dir + "/2/000/519/120.gph")) {
+  std::string expected_fname = test_dir + "/2/000/519/120.gph";
+  if (file_exists(expected_fname)) {
     return;
   }
 
@@ -197,6 +198,9 @@ void make_tile() {
   GraphTile reloaded(test_dir, tile_id);
   auto bins = GraphTileBuilder::BinEdges(&reloaded, tweeners);
   GraphTileBuilder::AddBins(test_dir, &reloaded, bins);
+  if (!file_exists(expected_fname)) {
+    throw std::runtime_error("Still no expected tile, did the actual fname on disk change?");
+  }
 }
 
 const std::string config_file = "test/test_trivial_path";
@@ -295,7 +299,6 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
       throw std::runtime_error("Unhandled case");
   }
   assert(bool(costs[int(mode)]));
-  assert(costs[int(mode)]->flow_mask() != 0);
 
   auto paths = astar.GetBestPath(origin, dest, reader, costs, mode);
 
@@ -325,7 +328,7 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
       // Grab time from an edge index
       const DirectedEdge* expected_edge = tile->directededge(assert_type_value);
       auto expected_cost = costs[int(mode)]->EdgeCost(expected_edge, tile);
-      expected_time = expected_cost.cost;
+      expected_time = expected_cost.secs;
       break;
   };
   if (expected_time == 0) {
@@ -350,13 +353,14 @@ void add(GraphId edge_id, float percent_along, const PointLL& ll, valhalla::Loca
 
 // test that a path from A to B succeeds, even if the edges from A to C and B
 // to D appear first in the PathLocation.
-void TestTrivialPath() {
+void TestTrivialPath(vt::PathAlgorithm& astar) {
   using node::a;
   using node::b;
   using node::c;
   using node::d;
 
   valhalla::Location origin;
+  //origin.set_date_time();
   origin.mutable_ll()->set_lng(a.second.first);
   origin.mutable_ll()->set_lat(a.second.second);
   add(tile_id + uint64_t(1), 0.0f, a.second, origin);
@@ -373,8 +377,16 @@ void TestTrivialPath() {
   add(tile_id + uint64_t(0), 1.0f, b.second, dest);
 
   // this should go along the path from A to B
-  vt::TimeDepForward astar;
   assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::DurationEqualTo, 360, vs::TravelMode::kDrive);
+}
+
+void TestTrivialPathForward() {
+  auto  astar = vt::TimeDepForward();
+  TestTrivialPath(astar);
+}
+void TestTrivialPathReverse() {
+  auto  astar = vt::TimeDepReverse();
+  TestTrivialPath(astar);
 }
 
 // test that a path from E to F succeeds, even if the edges from E and F
@@ -400,7 +412,7 @@ void TestTrivialPathTriangle() {
   add(tile_id + uint64_t(8), 1.0f, f.second, dest);
 
   // this should go along the path from E to F
-  vt::AStarPathAlgorithm astar;
+  vt::TimeDepReverse astar;
   assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
 }
 
@@ -898,8 +910,9 @@ int main() {
   //// TODO: move to mjolnir?
   suite.test(TEST_CASE(make_tile));
 
-  suite.test(TEST_CASE(TestTrivialPath));
-  //suite.test(TEST_CASE(TestTrivialPathTriangle));
+  suite.test(TEST_CASE(TestTrivialPathForward));
+  suite.test(TEST_CASE(TestTrivialPathReverse));
+  suite.test(TEST_CASE(TestTrivialPathTriangle));
 
   // suite.test(TEST_CASE(DoConfig));
   // suite.test(TEST_CASE(TestTrivialPathNoUturns));

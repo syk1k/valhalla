@@ -424,10 +424,10 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
             // remaining must be zero.
             GraphId id(destination_edge.graph_id());
             const DirectedEdge* dest_diredge = tile->directededge(id);
-            // TODO Tweak
             LOG_WARN("SetOrigin inner loop: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
             Cost dest_cost =
-                costing_->EdgeCost(dest_diredge, tile, 0) * (1.0f - destination_edge.percent_along());
+                costing_->EdgeCost(dest_diredge, tile, seconds_of_week) * (1.0f - destination_edge.percent_along());
+            LOG_WARN("remainder cost.secs: "+std::to_string(cost.secs) +", dest_cost.secs: "+std::to_string(dest_cost.secs)+", p->second.secs: "+std::to_string(p->second.secs));
             cost.secs -= p->second.secs;
             cost.cost -= dest_cost.cost;
             cost.cost += destination_edge.distance();
@@ -500,7 +500,7 @@ uint32_t AStarPathAlgorithm::SetDestination(GraphReader& graphreader,
     const DirectedEdge* directededge = tile->directededge(edgeid);
     LOG_WARN("SetDestination: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
     destinations_[edge.graph_id()] =
-        costing_->EdgeCost(directededge, tile) * (1.0f - edge.percent_along());
+        costing_->EdgeCost(directededge, tile, 172800) * (1.0f - edge.percent_along());
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 
