@@ -100,7 +100,7 @@ protected:
   EdgeStatus edgestatus_;
 
   // Destinations, id and cost
-  std::map<uint64_t, sif::Cost> destinations_;
+  std::map<uint64_t, float> destinations_;
 
   /**
    * Initializes the hierarchy limits, A* heuristic, and adjacency list.

@@ -168,8 +168,8 @@ void AStarPathAlgorithm::ExpandForward(GraphReader& graphreader,
     // (cost from the dest. location to the end of the edge).
     auto p = destinations_.find(edgeid);
     if (p != destinations_.end()) {
-      // Subtract partial cost and time
-      newcost -= p->second;
+      // Adapt cost to potentially not using the entire destination edge
+      newcost *= p->second;
 
       // Find the destination edge and update cost to include the edge score.
       // Note - with high edge scores the convergence test fails some routes
@@ -398,8 +398,9 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
 
     // Get cost
     nodeinfo = endtile->node(directededge->endnode());
-    LOG_WARN("SetOrigin: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
-    Cost cost = costing_->EdgeCost(directededge, tile, seconds_of_week) * (1.0f - edge.percent_along());
+    LOG_WARN("SetOrigin: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
+    Cost cost =
+        costing_->EdgeCost(directededge, tile, seconds_of_week) * (1.0f - edge.percent_along());
     float dist = astarheuristic_.GetDistance(endtile->get_node_ll(directededge->endnode()));
 
     // We need to penalize this location based on its score (distance in meters from input)
@@ -413,24 +414,29 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
     // destination is in a forward direction along the edge. Add back in
     // the edge score/penalty to account for destination edges farther from
     // the input location lat,lon.
-    auto p = destinations_.find(edgeid);
-    if (p != destinations_.end()) {
+    auto settled_dest_edge = destinations_.find(edgeid);
+    if (settled_dest_edge != destinations_.end()) {
       if (IsTrivial(edgeid, origin, destination)) {
         // Find the destination edge and update cost.
-        for (const auto& destination_edge : destination.path_edges()) {
-          if (destination_edge.graph_id() == edgeid) {
+        for (const auto& dest_path_edge : destination.path_edges()) {
+          if (dest_path_edge.graph_id() == edgeid) {
             // a trivial route passes along a single edge, meaning that the
             // destination point must be on this edge, and so the distance
             // remaining must be zero.
-            GraphId id(destination_edge.graph_id());
-            const DirectedEdge* dest_diredge = tile->directededge(id);
-            // TODO Tweak
-            LOG_WARN("SetOrigin inner loop: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
-            Cost dest_cost =
-                costing_->EdgeCost(dest_diredge, tile, 0) * (1.0f - destination_edge.percent_along());
-            cost.secs -= p->second.secs;
-            cost.cost -= dest_cost.cost;
-            cost.cost += destination_edge.distance();
+            GraphId id(dest_path_edge.graph_id());
+            const DirectedEdge* dest_edge = tile->directededge(id);
+            LOG_WARN("SetOrigin inner loop: edge id: " +
+                     std::to_string(GraphId(edge.graph_id()).id()));
+            Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
+                                  (1.0f - dest_path_edge.percent_along());
+            LOG_WARN("starting cost.secs: " + std::to_string(cost.secs) +
+                     ", remainder_cost.secs: " + std::to_string(remainder_cost.secs) +
+                     ", settled_dest_edge->second: " + std::to_string(settled_dest_edge->second));
+            // Remove the cost of the final "unused" part of the destination edge
+            cost -= remainder_cost;
+            // Add back in the edge score/penalty to account for destination edges
+            // farther from the input location lat,lon.
+            cost.cost += dest_path_edge.distance();
             cost.cost = std::max(0.0f, cost.cost);
             dist = 0.0;
           }
@@ -496,15 +502,13 @@ uint32_t AStarPathAlgorithm::SetDestination(GraphReader& graphreader,
 
     // Keep the cost to traverse the partial distance for the remainder of the edge. This cost
     // is subtracted from the total cost up to the end of the destination edge.
-    const GraphTile* tile = graphreader.GetGraphTile(edgeid);
-    const DirectedEdge* directededge = tile->directededge(edgeid);
-    LOG_WARN("SetDestination: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
-    destinations_[edge.graph_id()] =
-        costing_->EdgeCost(directededge, tile) * (1.0f - edge.percent_along());
+    LOG_WARN("SetDestination: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
+    destinations_[edge.graph_id()] = edge.percent_along();
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 
     // Get the tile relative density
+    const GraphTile* tile = graphreader.GetGraphTile(edgeid);
     density = tile->header()->density();
   }
   return density;
