@@ -1,5 +1,6 @@
 #include "thor/astar.h"
 #include "baldr/datetime.h"
+#include "baldr/graphconstants.h"
 #include "midgard/logging.h"
 #include <algorithm>
 #include <iostream> // TODO remove if not needed
@@ -263,7 +264,7 @@ AStarPathAlgorithm::GetBestPath(valhalla::Location& origin,
   // Initialize the origin and destination locations. Initialize the
   // destination first in case the origin edge includes a destination edge.
   uint32_t density = SetDestination(graphreader, destination);
-  SetOrigin(graphreader, origin, destination);
+  SetOrigin(graphreader, origin, destination, kInvalidSecondsOfWeek);
 
   // Update hierarchy limits
   ModifyHierarchyLimits(mindist, density);
@@ -346,7 +347,8 @@ AStarPathAlgorithm::GetBestPath(valhalla::Location& origin,
 // Add an edge at the origin to the adjacency list
 void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
                                    valhalla::Location& origin,
-                                   const valhalla::Location& destination) {
+                                   const valhalla::Location& destination,
+                                   const uint32_t seconds_of_week) {
   // Only skip inbound edges if we have other options
   bool has_other_edges = false;
   std::for_each(origin.path_edges().begin(), origin.path_edges().end(),
@@ -397,7 +399,7 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
     // Get cost
     nodeinfo = endtile->node(directededge->endnode());
     LOG_WARN("SetOrigin: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
-    Cost cost = costing_->EdgeCost(directededge, tile) * (1.0f - edge.percent_along());
+    Cost cost = costing_->EdgeCost(directededge, tile, seconds_of_week) * (1.0f - edge.percent_along());
     float dist = astarheuristic_.GetDistance(endtile->get_node_ll(directededge->endnode()));
 
     // We need to penalize this location based on its score (distance in meters from input)
