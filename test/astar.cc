@@ -399,41 +399,6 @@ void TestTrivialPathTriangle() {
   assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
 }
 
-void TestPartialDuration() {
-  // Tests that a partial duration is returned when starting on a partial edge
-  using node::a;
-  using node::b;
-  using node::d;
-
-  valhalla::Location origin;
-  origin.set_date_time("2019-11-21T23:05");
-  origin.mutable_ll()->set_lng(a.second.first);
-  origin.mutable_ll()->set_lat(a.second.second);
-  add(tile_id + uint64_t(0), 0., a.second, origin);
-  add(tile_id + uint64_t(2), 1., a.second, origin);
-
-  float partial_dist = 0.1;
-  valhalla::Location middle;
-  middle.mutable_ll()->set_lng(b.second.first);
-  middle.mutable_ll()->set_lat(b.second.second);
-  add(tile_id + uint64_t(2), 0., b.second, middle);
-  add(tile_id + uint64_t(0), 1., b.second, middle);
-  add(tile_id + uint64_t(3), 0.0f, b.second, middle);
-  add(tile_id + uint64_t(7), 1.0f, b.second, middle);
-
-  //valhalla::Location dest;
-  //dest.mutable_ll()->set_lng(d.second.first);
-  //dest.mutable_ll()->set_lat(d.second.second);
-  //add(tile_id + uint64_t(7), partial_dist, d.second, dest);
-  //add(tile_id + uint64_t(3), 1.0f - partial_dist, d.second, dest);
-
-  uint32_t expected_duration = 6365; // TODO set this to correct value
-
-  vt::TimeDepForward astar;
-  assert_is_trivial_path(astar, origin, middle, 1, TrivialPathTest::DurationEqualTo, expected_duration,
-                         vs::TravelMode::kDrive);
-}
-
 void trivial_path_no_uturns(const std::string& config_file) {
   boost::property_tree::ptree conf;
   rapidjson::read_json(config_file, conf);
@@ -930,7 +895,6 @@ int main() {
 
   suite.test(TEST_CASE(TestTrivialPath));
   //suite.test(TEST_CASE(TestTrivialPathTriangle));
-  //suite.test(TEST_CASE(TestPartialDuration));
 
   // suite.test(TEST_CASE(DoConfig));
   // suite.test(TEST_CASE(TestTrivialPathNoUturns));
