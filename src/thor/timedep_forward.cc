@@ -163,11 +163,13 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   }
 
   // Compute the cost to the end of this edge
-  LOG_WARN("ExpandInner: edge id: "+std::to_string(meta.edge_id.id()));
+  LOG_WARN("ExpandInner: edge id: " + std::to_string(meta.edge_id.id()));
   Cost newcost = pred.cost() + costing_->EdgeCost(meta.edge, tile, seconds_of_week) +
                  costing_->TransitionCost(meta.edge, nodeinfo, pred);
 
-  LOG_ERROR("Edge-id:" + std::to_string(meta.edge_id.id())+", localtime: "+std::to_string(localtime)+", seconds_of_week: "+std::to_string(seconds_of_week)+", secs: "+std::to_string(newcost.secs));
+  LOG_WARN("Edge-id:" + std::to_string(meta.edge_id.id()) + ", localtime: " +
+           std::to_string(localtime) + ", seconds_of_week: " + std::to_string(seconds_of_week) +
+           ", secs: " + std::to_string(newcost.secs));
 
   // If this edge is a destination, subtract the partial/remainder cost
   // (cost from the dest. location to the end of the edge).
@@ -268,7 +270,7 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
 
   // Initialize the origin and destination locations. Initialize the
   // destination first in case the origin edge includes a destination edge.
-  uint32_t density = SetDestination(graphreader, destination);
+  uint32_t density = SetDestination(graphreader, destination, seconds_of_week_);
   SetOrigin(graphreader, origin, destination, seconds_of_week_);
 
   // Set the origin timezone to be the timezone at the end node
@@ -293,6 +295,8 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
   const GraphTile* tile;
   size_t total_labels = 0;
   while (true) {
+
+    LOG_WARN("Looping in GetBestPath");
     // Allow this process to be aborted
     size_t current_labels = edgelabels_.size();
     if (interrupt &&
@@ -314,6 +318,7 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
       return {};
     }
 
+    LOG_WARN("CHECK IsTrivial");
     // Copy the EdgeLabel for use in costing. Check if this is a destination
     // edge and potentially complete the path.
     EdgeLabel pred = edgelabels_[predindex];
@@ -322,9 +327,11 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
       // trivial (cannot reach destination along this one edge).
       if (pred.predecessor() == kInvalidLabel) {
         if (IsTrivial(pred.edgeid(), origin, destination)) {
+          LOG_WARN("IsTrivial");
           return {FormPath(predindex)};
         }
       } else {
+        LOG_WARN("Not IsTrivial");
         return {FormPath(predindex)};
       }
     }

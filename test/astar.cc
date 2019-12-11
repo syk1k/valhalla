@@ -87,7 +87,7 @@ namespace {
 //      \ /
 //       g
 //
-std::string test_dir = "test/fake_tiles_astar";
+std::string test_dir = "test/data/fake_tiles_astar";
 vb::GraphId tile_id = vb::TileHierarchy::GetGraphId({.125, .125}, 2);
 
 namespace node {
@@ -192,6 +192,9 @@ void make_tile() {
   GraphTile reloaded(test_dir, tile_id);
   auto bins = GraphTileBuilder::BinEdges(&reloaded, tweeners);
   GraphTileBuilder::AddBins(test_dir, &reloaded, bins);
+  if (!filesystem::exists(test_dir + "/2/000/519/120.gph")) {
+    throw std::runtime_error("Still no expected tile, did the actual fname on disk change?");
+  }
 }
 
 const std::string config_file = "test/test_trivial_path";
@@ -213,11 +216,6 @@ void write_config(const std::string& filename) {
 }
 
 void create_costing_options(Options& options) {
-  // Add options in the order specified
-  //  for (const auto costing : {auto_, auto_shorter, bicycle, bus, hov,
-  //                              motor_scooter, multimodal, pedestrian, transit,
-  //                              truck, motorcycle, auto_data_fix}) {
-  // TODO - accept RapidJSON as argument.
   const rapidjson::Document doc;
   sif::ParseAutoCostOptions(doc, "/costing_options/auto", options.add_costing_options());
   sif::ParseAutoShorterCostOptions(doc, "/costing_options/auto_shorter",
@@ -228,7 +226,6 @@ void create_costing_options(Options& options) {
   sif::ParseTaxiCostOptions(doc, "/costing_options/taxi", options.add_costing_options());
   sif::ParseMotorScooterCostOptions(doc, "/costing_options/motor_scooter",
                                     options.add_costing_options());
-  options.add_costing_options();
   sif::ParsePedestrianCostOptions(doc, "/costing_options/pedestrian", options.add_costing_options());
   sif::ParseTransitCostOptions(doc, "/costing_options/transit", options.add_costing_options());
   sif::ParseTruckCostOptions(doc, "/costing_options/truck", options.add_costing_options());
@@ -237,6 +234,7 @@ void create_costing_options(Options& options) {
                                    options.add_costing_options());
   sif::ParseAutoDataFixCostOptions(doc, "/costing_options/auto_data_fix",
                                    options.add_costing_options());
+  options.add_costing_options();
 }
 
 enum class TrivialPathTest {
@@ -290,7 +288,6 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
       throw std::runtime_error("Unhandled case");
   }
   assert(bool(costs[int(mode)]));
-  assert(costs[int(mode)]->flow_mask() != 0);
 
   auto paths = astar.GetBestPath(origin, dest, reader, costs, mode);
 
@@ -299,8 +296,8 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
     for (const auto& p : path) {
       time += p.elapsed_time;
     }
-    for (const vt::PathInfo& subpath: path) {
-      LOG_INFO("Got path "+std::to_string(subpath.edgeid.id()));
+    for (const vt::PathInfo& subpath : path) {
+      LOG_INFO("Got path " + std::to_string(subpath.edgeid.id()));
     }
     if (path.size() != expected_num_paths) {
       std::ostringstream ostr;
@@ -320,7 +317,7 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
       // Grab time from an edge index
       const DirectedEdge* expected_edge = tile->directededge(assert_type_value);
       auto expected_cost = costs[int(mode)]->EdgeCost(expected_edge, tile);
-      expected_time = expected_cost.cost;
+      expected_time = expected_cost.secs;
       break;
   };
   if (expected_time == 0) {
@@ -345,13 +342,14 @@ void add(GraphId edge_id, float percent_along, const PointLL& ll, valhalla::Loca
 
 // test that a path from A to B succeeds, even if the edges from A to C and B
 // to D appear first in the PathLocation.
-void TestTrivialPath() {
+void TestTrivialPath(vt::PathAlgorithm& astar) {
   using node::a;
   using node::b;
   using node::c;
   using node::d;
 
   valhalla::Location origin;
+  // origin.set_date_time();
   origin.mutable_ll()->set_lng(a.second.first);
   origin.mutable_ll()->set_lat(a.second.second);
   add(tile_id + uint64_t(1), 0.0f, a.second, origin);
@@ -368,8 +366,17 @@ void TestTrivialPath() {
   add(tile_id + uint64_t(0), 1.0f, b.second, dest);
 
   // this should go along the path from A to B
-  vt::TimeDepForward astar;
-  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::DurationEqualTo, 360, vs::TravelMode::kDrive);
+  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::DurationEqualTo, 360,
+                         vs::TravelMode::kDrive);
+}
+
+void TestTrivialPathForward() {
+  auto astar = vt::TimeDepForward();
+  TestTrivialPath(astar);
+}
+void TestTrivialPathReverse() {
+  auto astar = vt::TimeDepReverse();
+  TestTrivialPath(astar);
 }
 
 // test that a path from E to F succeeds, even if the edges from E and F
@@ -394,9 +401,13 @@ void TestTrivialPathTriangle() {
   add(tile_id + uint64_t(10), 0.0f, f.second, dest);
   add(tile_id + uint64_t(8), 1.0f, f.second, dest);
 
-  // this should go along the path from E to F
+  // TODO This fails with graphindex out of bounds for Reverse direction, is this
+  // related to why we short-circuit trivial routes to AStarPathAlgorithm in route_action.cc?
+  //
   vt::AStarPathAlgorithm astar;
-  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::MatchesEdge, 8);
+  // this should go along the path from E to F
+  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::MatchesEdge, 8,
+                         vs::TravelMode::kPedestrian);
 }
 
 void trivial_path_no_uturns(const std::string& config_file) {
@@ -893,8 +904,9 @@ int main() {
   //// TODO: move to mjolnir?
   suite.test(TEST_CASE(make_tile));
 
-  suite.test(TEST_CASE(TestTrivialPath));
-  //suite.test(TEST_CASE(TestTrivialPathTriangle));
+  suite.test(TEST_CASE(TestTrivialPathForward));
+  suite.test(TEST_CASE(TestTrivialPathReverse));
+  suite.test(TEST_CASE(TestTrivialPathTriangle));
 
   // suite.test(TEST_CASE(DoConfig));
   // suite.test(TEST_CASE(TestTrivialPathNoUturns));

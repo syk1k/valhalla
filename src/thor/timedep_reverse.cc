@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream> // TODO remove if not needed
 #include <map>
+#include <string>
 
 using namespace valhalla::baldr;
 using namespace valhalla::sif;
@@ -213,6 +214,7 @@ inline bool TimeDepReverse::ExpandReverseInner(GraphReader& graphreader,
     return false;
   }
 
+  LOG_WARN("ExpandInner: edge id: " + std::to_string(meta.edge_id.id()));
   Cost tc =
       costing_->TransitionCostReverse(meta.edge->localedgeidx(), nodeinfo, opp_edge, opp_pred_edge);
   Cost newcost = pred.cost() + costing_->EdgeCost(opp_edge, t2, seconds_of_week);
@@ -314,10 +316,14 @@ TimeDepReverse::GetBestPath(valhalla::Location& origin,
   Init(origin_new, destination_new);
   float mindist = astarheuristic_.GetDistance(origin_new);
 
+  // Set seconds from beginning of the week
+  seconds_of_week_ = DateTime::day_of_week(destination.date_time()) * midgard::kSecondsPerDay +
+                     DateTime::seconds_from_midnight(destination.date_time());
+
   // Initialize the locations. For a reverse path search the destination location
   // is used as the "origin" and the origin location is used as the "destination".
-  uint32_t density = SetDestination(graphreader, origin);
-  SetOrigin(graphreader, destination, origin);
+  uint32_t density = SetDestination(graphreader, origin, seconds_of_week_);
+  SetOrigin(graphreader, destination, origin, seconds_of_week_);
 
   // Set the destination timezone
   dest_tz_index_ =
@@ -335,10 +341,6 @@ TimeDepReverse::GetBestPath(valhalla::Location& origin,
       DateTime::seconds_since_epoch(destination.date_time(),
                                     DateTime::get_tz_db().from_index(dest_tz_index_));
 
-  // Set seconds from beginning of the week
-  seconds_of_week_ = DateTime::day_of_week(destination.date_time()) * midgard::kSecondsPerDay +
-                     DateTime::seconds_from_midnight(destination.date_time());
-
   // Find shortest path
   uint32_t nc = 0; // Count of iterations with no convergence
                    // towards destination
@@ -346,6 +348,7 @@ TimeDepReverse::GetBestPath(valhalla::Location& origin,
   const GraphTile* tile;
   size_t total_labels = 0;
   while (true) {
+    LOG_WARN("LOOPING IN GetBestPath");
     // Allow this process to be aborted
     size_t current_labels = edgelabels_rev_.size();
     if (interrupt &&
@@ -376,9 +379,11 @@ TimeDepReverse::GetBestPath(valhalla::Location& origin,
       if (pred.predecessor() == kInvalidLabel) {
         // Use opposing edge.
         if (IsTrivial(pred.opp_edgeid(), origin, destination)) {
+          LOG_WARN("IsTrivial");
           return {FormPath(graphreader, predindex)};
         }
       } else {
+        LOG_WARN("Not IsTrivial");
         return {FormPath(graphreader, predindex)};
       }
     }
@@ -431,7 +436,8 @@ TimeDepReverse::GetBestPath(valhalla::Location& origin,
 // TODO - how do we set the
 void TimeDepReverse::SetOrigin(GraphReader& graphreader,
                                valhalla::Location& origin,
-                               valhalla::Location& destination) {
+                               valhalla::Location& destination,
+                               uint32_t seconds_of_week) {
   // Only skip outbound edges if we have other options
   bool has_other_edges = false;
   std::for_each(origin.path_edges().begin(), origin.path_edges().end(),
@@ -476,8 +482,9 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
     }
     const DirectedEdge* opp_dir_edge = graphreader.GetOpposingEdge(edgeid);
 
+    LOG_WARN("SetOrigin: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
     // Get cost
-    Cost cost = costing_->EdgeCost(directededge, tile) * edge.percent_along();
+    Cost cost = costing_->EdgeCost(directededge, tile, seconds_of_week) * edge.percent_along();
     float dist = astarheuristic_.GetDistance(tile->get_node_ll(opp_dir_edge->endnode()));
 
     // We need to penalize this location based on its score (distance in meters from input)
@@ -503,8 +510,13 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
             // remaining must be zero.
             GraphId id(destination_edge.graph_id());
             const DirectedEdge* dest_diredge = tile->directededge(id);
-            Cost dest_cost =
-                costing_->EdgeCost(dest_diredge, tile) * (1.0f - destination_edge.percent_along());
+            LOG_WARN("SetOrigin inner loop: edge id: " +
+                     std::to_string(GraphId(edge.graph_id()).id()));
+            Cost dest_cost = costing_->EdgeCost(dest_diredge, tile, seconds_of_week) *
+                             destination_edge.percent_along();
+            LOG_WARN("remainder cost.secs: " + std::to_string(cost.secs) +
+                     ", dest_cost.secs: " + std::to_string(dest_cost.secs) +
+                     ", p->second.secs: " + std::to_string(p->second.secs));
             cost.secs -= p->second.secs;
             cost.cost -= dest_cost.cost;
             cost.cost += destination_edge.distance();
@@ -522,12 +534,14 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
 
     // Compute sortcost
     float sortcost = cost.cost + astarheuristic_.Get(dist);
+    LOG_WARN("astarheuristic " + std::to_string(astarheuristic_.Get(dist)));
 
     // Add BDEdgeLabel to the adjacency list. Set the predecessor edge index
     // to invalid to indicate the origin of the path. Make sure the opposing
     // edge (edgeid) is set.
     // DO NOT SET EdgeStatus - it messes up trivial paths with oneways
     uint32_t idx = edgelabels_rev_.size();
+    LOG_WARN("Emplacing to edgelabels_rev_: cost.secs: " + std::to_string(cost.secs));
     edgelabels_rev_.emplace_back(kInvalidLabel, opp_edge_id, edgeid, opp_dir_edge, cost, sortcost,
                                  dist, mode_, c, false, false);
     adjacencylist_->add(idx);
@@ -544,7 +558,9 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
 // Add destination edges at the origin location. If the location is at a node
 // skip any outbound edges since the path search is reversed.
 // TODO - test to make sure that excluding outbound edges is what we want!
-uint32_t TimeDepReverse::SetDestination(GraphReader& graphreader, const valhalla::Location& dest) {
+uint32_t TimeDepReverse::SetDestination(GraphReader& graphreader,
+                                        const valhalla::Location& dest,
+                                        const uint32_t seconds_of_week) {
   // Only skip outbound edges if we have other options
   bool has_other_edges = false;
   std::for_each(dest.path_edges().begin(), dest.path_edges().end(),
@@ -574,8 +590,10 @@ uint32_t TimeDepReverse::SetDestination(GraphReader& graphreader, const valhalla
     if (t2 == nullptr) {
       continue;
     }
+    LOG_WARN("SetDestination: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
     GraphId oppedge = t2->GetOpposingEdgeId(directededge);
-    destinations_[oppedge] = costing_->EdgeCost(directededge, tile) * (1.0f - edge.percent_along());
+    destinations_[oppedge] =
+        costing_->EdgeCost(directededge, tile, seconds_of_week_) * edge.percent_along();
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 
@@ -606,8 +624,11 @@ std::vector<PathInfo> TimeDepReverse::FormPath(GraphReader& graphreader, const u
     // prior edge.
     uint32_t predidx = edgelabel.predecessor();
     if (predidx == kInvalidLabel) {
+      LOG_WARN("FormPath: edgelabel.secs: " + std::to_string(edgelabel.cost().secs));
       cost += edgelabel.cost();
     } else {
+      LOG_WARN("FormPath: edgelabel.secs: " + std::to_string(edgelabel.cost().secs) +
+               ", edgelabels_rev_: " + std::to_string(edgelabels_rev_[predidx].cost().secs));
       cost += edgelabel.cost() - edgelabels_rev_[predidx].cost();
     }
     cost += tc;

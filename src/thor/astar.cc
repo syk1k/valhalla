@@ -263,7 +263,7 @@ AStarPathAlgorithm::GetBestPath(valhalla::Location& origin,
 
   // Initialize the origin and destination locations. Initialize the
   // destination first in case the origin edge includes a destination edge.
-  uint32_t density = SetDestination(graphreader, destination);
+  uint32_t density = SetDestination(graphreader, destination, kInvalidSecondsOfWeek);
   SetOrigin(graphreader, origin, destination, kInvalidSecondsOfWeek);
 
   // Update hierarchy limits
@@ -398,8 +398,9 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
 
     // Get cost
     nodeinfo = endtile->node(directededge->endnode());
-    LOG_WARN("SetOrigin: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
-    Cost cost = costing_->EdgeCost(directededge, tile, seconds_of_week) * (1.0f - edge.percent_along());
+    LOG_WARN("SetOrigin: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
+    Cost cost =
+        costing_->EdgeCost(directededge, tile, seconds_of_week) * (1.0f - edge.percent_along());
     float dist = astarheuristic_.GetDistance(endtile->get_node_ll(directededge->endnode()));
 
     // We need to penalize this location based on its score (distance in meters from input)
@@ -424,10 +425,13 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
             // remaining must be zero.
             GraphId id(destination_edge.graph_id());
             const DirectedEdge* dest_diredge = tile->directededge(id);
-            // TODO Tweak
-            LOG_WARN("SetOrigin inner loop: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
-            Cost dest_cost =
-                costing_->EdgeCost(dest_diredge, tile, 0) * (1.0f - destination_edge.percent_along());
+            LOG_WARN("SetOrigin inner loop: edge id: " +
+                     std::to_string(GraphId(edge.graph_id()).id()));
+            Cost dest_cost = costing_->EdgeCost(dest_diredge, tile, seconds_of_week) *
+                             (1.0f - destination_edge.percent_along());
+            LOG_WARN("remainder cost.secs: " + std::to_string(cost.secs) +
+                     ", dest_cost.secs: " + std::to_string(dest_cost.secs) +
+                     ", p->second.secs: " + std::to_string(p->second.secs));
             cost.secs -= p->second.secs;
             cost.cost -= dest_cost.cost;
             cost.cost += destination_edge.distance();
@@ -472,7 +476,8 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
 
 // Add a destination edge
 uint32_t AStarPathAlgorithm::SetDestination(GraphReader& graphreader,
-                                            const valhalla::Location& dest) {
+                                            const valhalla::Location& dest,
+                                            const uint32_t seconds_of_week) {
   // Only skip outbound edges if we have other options
   bool has_other_edges = false;
   std::for_each(dest.path_edges().begin(), dest.path_edges().end(),
@@ -498,9 +503,9 @@ uint32_t AStarPathAlgorithm::SetDestination(GraphReader& graphreader,
     // is subtracted from the total cost up to the end of the destination edge.
     const GraphTile* tile = graphreader.GetGraphTile(edgeid);
     const DirectedEdge* directededge = tile->directededge(edgeid);
-    LOG_WARN("SetDestination: edge id: "+std::to_string(GraphId(edge.graph_id()).id()));
+    LOG_WARN("SetDestination: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
     destinations_[edge.graph_id()] =
-        costing_->EdgeCost(directededge, tile) * (1.0f - edge.percent_along());
+        costing_->EdgeCost(directededge, tile, seconds_of_week) * (1.0f - edge.percent_along());
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 
