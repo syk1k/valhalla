@@ -25,6 +25,9 @@ commands:
 jobs:
   build-base:
     docker:
+      # Note, this is the primary container and circleci builds the valhalla images
+      # _inside_ this primary. (docker-inside-docker). That implies we don't really care
+      # about what the primary container is as long as docker is installed
       - image: docker:18.06.3-ce-git
     steps:
       - setup_remote_docker
@@ -35,11 +38,11 @@ jobs:
       - run:
           name: Build Valhalla base Dockerfile
           command: |
-            docker build -f ./docker/Dockerfile-build --tag valhalla/docker:build-3.0.2 ./docker
+            docker build -f ./docker/Dockerfile-build --tag valhalla/docker:build-latest ./docker
       - run:
           name: Build Valhalla base Dockerfile x86
           command: |
-            docker build -f ./docker/Dockerfile-build-x86 --tag valhalla/docker:build-x86-3.0.2 ./docker
+            docker build -f ./docker/Dockerfile-build-x86 --tag valhalla/docker:build-x86-latest ./docker
       - save_cache:
           key: ccache
           paths:
@@ -49,12 +52,12 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-              docker push valhalla/docker:build-3.0.2
-              docker push valhalla/docker:build-x86-3.0.2
+              docker push valhalla/docker:build-latest
+              docker push valhalla/docker:build-x86-latest
             fi
   build-release-binary-linux:
     docker:
-      - image: valhalla/docker:build-3.0.2
+      - image: valhalla/docker:build-latest
     steps:
       - checkout
       - run:
@@ -95,7 +98,7 @@ jobs:
 
   build-debug-binary-linux:
     docker:
-      - image: valhalla/docker:build-3.0.2
+      - image: valhalla/docker:build-latest
     steps:
       - checkout
       - run:
@@ -134,7 +137,7 @@ jobs:
 
   lint-build-debug:
     docker:
-      - image: valhalla/docker:build-3.0.2
+      - image: valhalla/docker:build-latest
     steps:
       - checkout
       - run: ./scripts/format.sh && ./scripts/error_on_dirty.sh
@@ -160,7 +163,7 @@ jobs:
 
   build-release:
     docker:
-      - image: valhalla/docker:build-3.0.2
+      - image: valhalla/docker:build-latest
     steps:
       - checkout
       - run: ./scripts/format.sh && ./scripts/error_on_dirty.sh
@@ -185,7 +188,7 @@ jobs:
 
   build-release-x86:
     docker:
-      - image: valhalla/docker:build-x86-3.0.2
+      - image: valhalla/docker:build-x86-latest
     steps:
       - checkout
       #- run: ./scripts/format.sh && ./scripts/error_on_dirty.sh
