@@ -36,6 +36,11 @@ jobs:
           keys:
             - ccache
       - run:
+          name: Fetch existing images
+          command: |
+              docker pull valhalla/docker:build-3.0.2
+              docker pull valhalla/docker:build-x86-3.0.2
+      - run:
           name: Build Valhalla base Dockerfile
           command: |
             docker build -f ./docker/Dockerfile-build --tag valhalla/docker:build-latest ./docker
