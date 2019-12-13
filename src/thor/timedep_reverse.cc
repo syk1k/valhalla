@@ -591,7 +591,7 @@ uint32_t TimeDepReverse::SetDestination(GraphReader& graphreader,
     }
     LOG_WARN("SetDestination: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
     GraphId oppedge = t2->GetOpposingEdgeId(directededge);
-    destinations_[oppedge] = 1.0 - edge.percent_along();
+    destinations_[oppedge] = edge.percent_along();
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 

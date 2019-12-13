@@ -505,8 +505,7 @@ uint32_t AStarPathAlgorithm::SetDestination(GraphReader& graphreader,
     const GraphTile* tile = graphreader.GetGraphTile(edgeid);
     const DirectedEdge* directededge = tile->directededge(edgeid);
     LOG_WARN("SetDestination: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
-    destinations_[edge.graph_id()] =
-        1.0f - edge.percent_along();
+    destinations_[edge.graph_id()] = edge.percent_along();
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 
