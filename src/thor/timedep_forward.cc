@@ -175,8 +175,8 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   // (cost from the dest. location to the end of the edge).
   auto dest_edge = destinations_.find(meta.edge_id);
   if (dest_edge != destinations_.end()) {
-    // Subtract partial cost and time
-    newcost -= dest_edge->second;
+    // Adapt cost to potentially not using the entire destination edge
+    newcost *= dest_edge->second;
 
     // Find the destination edge and update cost to include the edge score.
     // Note - with high edge scores the convergence test fails some routes
@@ -270,7 +270,7 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
 
   // Initialize the origin and destination locations. Initialize the
   // destination first in case the origin edge includes a destination edge.
-  uint32_t density = SetDestination(graphreader, destination, seconds_of_week_);
+  uint32_t density = SetDestination(graphreader, destination);
   SetOrigin(graphreader, origin, destination, seconds_of_week_);
 
   // Set the origin timezone to be the timezone at the end node
