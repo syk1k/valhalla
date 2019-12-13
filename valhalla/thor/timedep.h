@@ -208,7 +208,9 @@ protected:
    * @param   dest         Location information of the destination.
    * @return  Returns the relative density near the destination (0-15)
    */
-  uint32_t SetDestination(baldr::GraphReader& graphreader, const valhalla::Location& dest);
+  uint32_t SetDestination(baldr::GraphReader& graphreader,
+                          const valhalla::Location& dest,
+                          const uint32_t seconds_of_week);
 
   /**
    * Form the path from the adjacency list. Recovers the path from the
