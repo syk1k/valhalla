@@ -410,6 +410,69 @@ void TestTrivialPathTriangle() {
                          vs::TravelMode::kPedestrian);
 }
 
+void TestPartialDurationTrivial() {
+  // Tests a trivial path with partial edge results in partial duration
+  using node::a;
+  using node::b;
+  using node::d;
+
+  valhalla::Location origin;
+  origin.set_date_time("2019-11-21T23:05");
+  origin.mutable_ll()->set_lng(a.second.first);
+  origin.mutable_ll()->set_lat(a.second.second);
+  add(tile_id + uint64_t(0), 0.1f, a.second, origin);
+  add(tile_id + uint64_t(2), 0.9f, a.second, origin);
+
+  float partial_dist = 0.1;
+  valhalla::Location dest;
+  dest.mutable_ll()->set_lng(b.second.first);
+  dest.mutable_ll()->set_lat(b.second.second);
+  add(tile_id + uint64_t(2), 0. + partial_dist, b.second, dest);
+  add(tile_id + uint64_t(0), 1. - partial_dist, b.second, dest);
+  add(tile_id + uint64_t(3), 0.0f, b.second, dest);
+  add(tile_id + uint64_t(7), 1.0f, b.second, dest);
+
+  uint32_t expected_duration = 288;
+
+  vt::TimeDepForward astar;
+  assert_is_trivial_path(astar, origin, dest, 1, TrivialPathTest::DurationEqualTo, expected_duration,
+                         vs::TravelMode::kDrive);
+}
+
+void TestPartialDuration() {
+  // Tests that a partial duration is returned when starting on a partial edge
+  using node::a;
+  using node::b;
+  using node::d;
+
+  valhalla::Location origin;
+  origin.set_date_time("2019-11-21T23:05");
+  origin.mutable_ll()->set_lng(a.second.first);
+  origin.mutable_ll()->set_lat(a.second.second);
+  add(tile_id + uint64_t(0), 0., a.second, origin);
+  add(tile_id + uint64_t(2), 1., a.second, origin);
+
+  valhalla::Location middle;
+  middle.mutable_ll()->set_lng(b.second.first);
+  middle.mutable_ll()->set_lat(b.second.second);
+  add(tile_id + uint64_t(2), 0.0f, b.second, middle);
+  add(tile_id + uint64_t(0), 1.0f, b.second, middle);
+  add(tile_id + uint64_t(3), 0.0f, b.second, middle);
+  add(tile_id + uint64_t(7), 1.0f, b.second, middle);
+
+  float partial_dist = 0.1;
+  valhalla::Location dest;
+  dest.mutable_ll()->set_lng(d.second.first);
+  dest.mutable_ll()->set_lat(d.second.second);
+  add(tile_id + uint64_t(7), 0.0f + partial_dist, d.second, dest);
+  add(tile_id + uint64_t(3), 1.0f - partial_dist, d.second, dest);
+
+  uint32_t expected_duration = 1009;
+
+  vt::TimeDepForward astar;
+  assert_is_trivial_path(astar, origin, dest, 2, TrivialPathTest::DurationEqualTo, expected_duration,
+                         vs::TravelMode::kDrive);
+}
 void trivial_path_no_uturns(const std::string& config_file) {
   boost::property_tree::ptree conf;
   rapidjson::read_json(config_file, conf);
@@ -904,19 +967,21 @@ int main() {
   //// TODO: move to mjolnir?
   suite.test(TEST_CASE(make_tile));
 
-  //suite.test(TEST_CASE(TestTrivialPathForward));
+  suite.test(TEST_CASE(TestTrivialPathForward));
   suite.test(TEST_CASE(TestTrivialPathReverse));
-  //suite.test(TEST_CASE(TestTrivialPathTriangle));
+  suite.test(TEST_CASE(TestTrivialPathTriangle));
+  suite.test(TEST_CASE(TestPartialDurationTrivial));
+  suite.test(TEST_CASE(TestPartialDuration));
 
-  // suite.test(TEST_CASE(DoConfig));
-  // suite.test(TEST_CASE(TestTrivialPathNoUturns));
+  suite.test(TEST_CASE(DoConfig));
+  suite.test(TEST_CASE(TestTrivialPathNoUturns));
 
-  // suite.test(TEST_CASE(test_deadend));
-  // suite.test(TEST_CASE(test_deadend_timedep_forward));
-  // suite.test(TEST_CASE(test_deadend_timedep_reverse));
-  // suite.test(TEST_CASE(test_oneway));
-  // suite.test(TEST_CASE(test_oneway_wrong_way));
-  // suite.test(TEST_CASE(test_time_restricted_road));
+  suite.test(TEST_CASE(test_deadend));
+  suite.test(TEST_CASE(test_deadend_timedep_forward));
+  suite.test(TEST_CASE(test_deadend_timedep_reverse));
+  suite.test(TEST_CASE(test_oneway));
+  suite.test(TEST_CASE(test_oneway_wrong_way));
+  suite.test(TEST_CASE(test_time_restricted_road));
 
   return suite.tear_down();
 }

@@ -510,7 +510,7 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
             LOG_WARN("SetOrigin inner loop: edge id: " +
                      std::to_string(GraphId(edge.graph_id()).id()));
             Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
-                             (dest_path_edge.percent_along());
+                                  (dest_path_edge.percent_along());
             LOG_WARN("starting cost.secs: " + std::to_string(cost.secs) +
                      ", remainder_cost.secs: " + std::to_string(remainder_cost.secs) +
                      ", settled_dest_edge->second: " + std::to_string(settled_dest_edge->second));
@@ -540,7 +540,8 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
     // edge (edgeid) is set.
     // DO NOT SET EdgeStatus - it messes up trivial paths with oneways
     uint32_t idx = edgelabels_rev_.size();
-    LOG_WARN("Emplacing "+std::to_string(edgeid.id())+" to edgelabels_rev_: cost.secs: " + std::to_string(cost.secs));
+    LOG_WARN("Emplacing " + std::to_string(edgeid.id()) + " to edgelabels_rev_: cost.secs: " +
+             std::to_string(cost.secs) + " percent_along: " + std::to_string(edge.percent_along()));
     edgelabels_rev_.emplace_back(kInvalidLabel, opp_edge_id, edgeid, opp_dir_edge, cost, sortcost,
                                  dist, mode_, c, false, false);
     adjacencylist_->add(idx);
@@ -557,8 +558,7 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
 // Add destination edges at the origin location. If the location is at a node
 // skip any outbound edges since the path search is reversed.
 // TODO - test to make sure that excluding outbound edges is what we want!
-uint32_t TimeDepReverse::SetDestination(GraphReader& graphreader,
-                                        const valhalla::Location& dest) {
+uint32_t TimeDepReverse::SetDestination(GraphReader& graphreader, const valhalla::Location& dest) {
   // Only skip outbound edges if we have other options
   bool has_other_edges = false;
   std::for_each(dest.path_edges().begin(), dest.path_edges().end(),

@@ -428,7 +428,7 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
             LOG_WARN("SetOrigin inner loop: edge id: " +
                      std::to_string(GraphId(edge.graph_id()).id()));
             Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
-                             (1.0f - dest_path_edge.percent_along());
+                                  (1.0f - dest_path_edge.percent_along());
             LOG_WARN("starting cost.secs: " + std::to_string(cost.secs) +
                      ", remainder_cost.secs: " + std::to_string(remainder_cost.secs) +
                      ", settled_dest_edge->second: " + std::to_string(settled_dest_edge->second));
