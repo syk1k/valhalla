@@ -904,9 +904,9 @@ int main() {
   //// TODO: move to mjolnir?
   suite.test(TEST_CASE(make_tile));
 
-  suite.test(TEST_CASE(TestTrivialPathForward));
+  //suite.test(TEST_CASE(TestTrivialPathForward));
   suite.test(TEST_CASE(TestTrivialPathReverse));
-  suite.test(TEST_CASE(TestTrivialPathTriangle));
+  //suite.test(TEST_CASE(TestTrivialPathTriangle));
 
   // suite.test(TEST_CASE(DoConfig));
   // suite.test(TEST_CASE(TestTrivialPathNoUturns));

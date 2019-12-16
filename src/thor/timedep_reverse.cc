@@ -541,7 +541,7 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
     // edge (edgeid) is set.
     // DO NOT SET EdgeStatus - it messes up trivial paths with oneways
     uint32_t idx = edgelabels_rev_.size();
-    LOG_WARN("Emplacing to edgelabels_rev_: cost.secs: " + std::to_string(cost.secs));
+    LOG_WARN("Emplacing "+std::to_string(edgeid)+" to edgelabels_rev_: cost.secs: " + std::to_string(cost.secs));
     edgelabels_rev_.emplace_back(kInvalidLabel, opp_edge_id, edgeid, opp_dir_edge, cost, sortcost,
                                  dist, mode_, c, false, false);
     adjacencylist_->add(idx);

@@ -502,14 +502,13 @@ uint32_t AStarPathAlgorithm::SetDestination(GraphReader& graphreader,
 
     // Keep the cost to traverse the partial distance for the remainder of the edge. This cost
     // is subtracted from the total cost up to the end of the destination edge.
-    const GraphTile* tile = graphreader.GetGraphTile(edgeid);
-    const DirectedEdge* directededge = tile->directededge(edgeid);
     LOG_WARN("SetDestination: edge id: " + std::to_string(GraphId(edge.graph_id()).id()));
     destinations_[edge.graph_id()] = edge.percent_along();
 
     // Edge score (penalty) is handled within GetPath. Do not add score here.
 
     // Get the tile relative density
+    const GraphTile* tile = graphreader.GetGraphTile(edgeid);
     density = tile->header()->density();
   }
   return density;
