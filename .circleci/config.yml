@@ -28,7 +28,7 @@ jobs:
       # Note, this is the primary container and circleci builds the valhalla images
       # _inside_ this primary. (docker-inside-docker). That implies we don't really care
       # about what the primary container is as long as docker is installed
-      - image: docker:18.06.3-ce-git
+      - image: docker:19.03-git
     steps:
       - setup_remote_docker
       - checkout
