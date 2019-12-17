@@ -161,7 +161,7 @@ void AStarPathAlgorithm::ExpandForward(GraphReader& graphreader,
     }
 
     // Compute the cost to the end of this edge
-    Cost newcost = pred.cost() + costing_->EdgeCost(directededge, tile, kInvalidSecondsOfWeek) +
+    Cost newcost = pred.cost() + costing_->EdgeCost(directededge, tile) +
                    costing_->TransitionCost(directededge, nodeinfo, pred);
 
     std::cout <<"   astar ExpandForward" <<std::endl;
@@ -170,7 +170,9 @@ void AStarPathAlgorithm::ExpandForward(GraphReader& graphreader,
     auto p = destinations_percent_along_.find(edgeid);
     if (p != destinations_percent_along_.end()) {
       // Adapt cost to potentially not using the entire destination edge
+      printf("old cost %f, ", newcost.secs);
       newcost *= p->second;
+      printf("fraction: %f gives new cost %f\n", p->second, newcost.secs);
 
       // Find the destination edge and update cost to include the edge score.
       // Note - with high edge scores the convergence test fails some routes
