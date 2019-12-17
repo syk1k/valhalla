@@ -413,24 +413,27 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
     // destination is in a forward direction along the edge. Add back in
     // the edge score/penalty to account for destination edges farther from
     // the input location lat,lon.
-    if (IsTrivial(edgeid, origin, destination)) {
-      // Find the destination edge and update cost.
-      for (const auto& dest_path_edge : destination.path_edges()) {
-        if (dest_path_edge.graph_id() == edgeid) {
-          // a trivial route passes along a single edge, meaning that the
-          // destination point must be on this edge, and so the distance
-          // remaining must be zero.
-          GraphId id(dest_path_edge.graph_id());
-          const DirectedEdge* dest_edge = tile->directededge(id);
-          Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
-                                (1.0f - dest_path_edge.percent_along());
-          // Remove the cost of the final "unused" part of the destination edge
-          cost -= remainder_cost;
-          // Add back in the edge score/penalty to account for destination edges
-          // farther from the input location lat,lon.
-          cost.cost += dest_path_edge.distance();
-          cost.cost = std::max(0.0f, cost.cost);
-          dist = 0.0;
+    auto settled_dest_edge = destinations_percent_along_.find(edgeid);
+    if (settled_dest_edge != destinations_percent_along_.end()) {
+      if (IsTrivial(edgeid, origin, destination)) {
+        // Find the destination edge and update cost.
+        for (const auto& dest_path_edge : destination.path_edges()) {
+          if (dest_path_edge.graph_id() == edgeid) {
+            // a trivial route passes along a single edge, meaning that the
+            // destination point must be on this edge, and so the distance
+            // remaining must be zero.
+            GraphId id(dest_path_edge.graph_id());
+            const DirectedEdge* dest_edge = tile->directededge(id);
+            Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
+                                  (1.0f - dest_path_edge.percent_along());
+            // Remove the cost of the final "unused" part of the destination edge
+            cost -= remainder_cost;
+            // Add back in the edge score/penalty to account for destination edges
+            // farther from the input location lat,lon.
+            cost.cost += dest_path_edge.distance();
+            cost.cost = std::max(0.0f, cost.cost);
+            dist = 0.0;
+          }
         }
       }
     }

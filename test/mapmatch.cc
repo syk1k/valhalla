@@ -179,6 +179,7 @@ void test_matcher() {
     // get a route shape
     PointLL start, end;
     auto test_case = make_test_case(start, end);
+    std::cout << test_case << std::endl;
     boost::property_tree::ptree route;
     std::string route_json;
     try {
@@ -211,6 +212,7 @@ void test_matcher() {
           json_escape(encoded_shape) + "\"}");
       walked = json_to_pt(walked_json);
     } catch (...) {
+      std::cout << test_case << std::endl;
       std::cout << R"({"costing":"auto","shape_match":"edge_walk","encoded_polyline":")" +
                        json_escape(encoded_shape) + "\"}"
                 << std::endl;
@@ -990,7 +992,6 @@ void test_leg_duration_trimming() {
   };
 
   api_tester tester;
-  std::cout << std::endl;
   for (const auto& test_case : test_cases) {
     // for routing we need to do each route separately, and we manually mash them into one object
     valhalla::Api route_api;

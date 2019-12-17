@@ -480,7 +480,6 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
                                 const std::shared_ptr<DynamicCost>* mode_costing,
                                 const sif::TravelMode mode,
                                 const Options& options) {
-
   // Set the mode and costing
   mode_ = mode;
   costing_ = mode_costing[static_cast<uint32_t>(mode_)];

@@ -514,11 +514,10 @@ void TimeDepReverse::SetOrigin(GraphReader& graphreader,
           }
         }
       }
-
-      // Store the closest node info
-      if (closest_ni == nullptr) {
-        closest_ni = nodeinfo;
-      }
+    }
+    // Store the closest node info
+    if (closest_ni == nullptr) {
+      closest_ni = nodeinfo;
     }
 
     // Compute sortcost

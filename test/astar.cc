@@ -31,7 +31,6 @@
 #include "thor/worker.h"
 #include "tyr/serializers.h"
 
-#include <stdexcept>
 #include <valhalla/proto/directions.pb.h>
 #include <valhalla/proto/options.pb.h>
 #include <valhalla/proto/trip.pb.h>
