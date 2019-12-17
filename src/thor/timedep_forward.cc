@@ -161,7 +161,8 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   }
 
   // Compute the cost to the end of this edge
-  Cost newcost = pred.cost() + costing_->EdgeCost(meta.edge, tile, seconds_of_week) +
+  auto edge_cost = costing_->EdgeCost(meta.edge, tile, seconds_of_week);
+  Cost newcost = pred.cost() + edge_cost +
                  costing_->TransitionCost(meta.edge, nodeinfo, pred);
 
   // If this edge is a destination, subtract the partial/remainder cost
@@ -169,7 +170,7 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
   auto dest_edge = destinations_percent_along_.find(meta.edge_id);
   if (dest_edge != destinations_percent_along_.end()) {
     // Adapt cost to potentially not using the entire destination edge
-    newcost *= dest_edge->second;
+    newcost -= edge_cost * (1.0f -dest_edge->second);
 
     // Find the destination edge and update cost to include the edge score.
     // Note - with high edge scores the convergence test fails some routes

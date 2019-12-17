@@ -214,7 +214,8 @@ inline bool TimeDepReverse::ExpandReverseInner(GraphReader& graphreader,
 
   Cost tc =
       costing_->TransitionCostReverse(meta.edge->localedgeidx(), nodeinfo, opp_edge, opp_pred_edge);
-  Cost newcost = pred.cost() + costing_->EdgeCost(opp_edge, t2, seconds_of_week);
+  auto edge_cost = costing_->EdgeCost(opp_edge, t2, seconds_of_week);
+  Cost newcost = pred.cost() + edge_cost;
   newcost.cost += tc.cost;
 
   // If this edge is a destination, subtract the partial/remainder cost
@@ -222,7 +223,7 @@ inline bool TimeDepReverse::ExpandReverseInner(GraphReader& graphreader,
   auto p = destinations_percent_along_.find(meta.edge_id);
   if (p != destinations_percent_along_.end()) {
     // Adapt cost to potentially not using the entire destination edge
-    newcost *= p->second;
+    newcost -= edge_cost * (1.0f - p->second);
 
     // Find the destination edge and update cost to include the edge score.
     // Note - with high edge scores the convergence test fails some routes

@@ -467,7 +467,7 @@ void TestPartialDuration() {
   add(tile_id + uint64_t(7), 0.0f + partial_dist, d.second, dest);
   add(tile_id + uint64_t(3), 1.0f - partial_dist, d.second, dest);
 
-  uint32_t expected_duration = 1009;
+  uint32_t expected_duration = 1045;
 
   vt::TimeDepForward astar;
   assert_is_trivial_path(astar, origin, dest, 2, TrivialPathTest::DurationEqualTo, expected_duration,
