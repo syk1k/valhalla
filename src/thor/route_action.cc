@@ -213,13 +213,9 @@ void thor_worker_t::route(Api& request) {
 
   // get all the legs
   if (options.has_date_time_type() && options.date_time_type() == Options::arrive_by) {
-    std::cout << "  arrive_by" << std::endl;
     path_arrive_by(request, costing);
-  }
-  else {
-    std::cout << "  depart_at" << std::endl;
+  } else {
     path_depart_at(request, costing);
-
   }
   // log admin areas
   if (!options.do_not_track()) {
@@ -236,7 +232,6 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
                                                        const valhalla::Location& destination) {
   // Have to use multimodal for transit based routing
   if (routetype == "multimodal" || routetype == "transit") {
-    std::cout <<"   get multimodal" <<std::endl;
     multi_modal_astar.set_interrupt(interrupt);
     return &multi_modal_astar;
   }
@@ -247,7 +242,6 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
     PointLL ll1(origin.ll().lng(), origin.ll().lat());
     PointLL ll2(destination.ll().lng(), destination.ll().lat());
     if (ll1.Distance(ll2) < max_timedep_distance) {
-      std::cout <<"   get forward timedep" <<std::endl;
       timedep_forward.set_interrupt(interrupt);
       return &timedep_forward;
     }
@@ -259,7 +253,6 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
     PointLL ll1(origin.ll().lng(), origin.ll().lat());
     PointLL ll2(destination.ll().lng(), destination.ll().lat());
     if (ll1.Distance(ll2) < max_timedep_distance) {
-      std::cout <<"   get reverse timedep" <<std::endl;
       timedep_reverse.set_interrupt(interrupt);
       return &timedep_reverse;
     }
@@ -273,14 +266,12 @@ thor::PathAlgorithm* thor_worker_t::get_path_algorithm(const std::string& routet
     for (auto& edge2 : destination.path_edges()) {
       if (edge1.graph_id() == edge2.graph_id() ||
           reader->AreEdgesConnected(GraphId(edge1.graph_id()), GraphId(edge2.graph_id()))) {
-        std::cout <<"   get trivial astar" <<std::endl;
         astar.set_interrupt(interrupt);
         return &astar;
       }
     }
   }
   bidir_astar.set_interrupt(interrupt);
-  std::cout <<"   get bidir astar" <<std::endl;
   return &bidir_astar;
 }
 
@@ -444,7 +435,6 @@ void thor_worker_t::path_depart_at(Api& api, const std::string& costing) {
 
   // For each pair of locations
   for (auto destination = ++correlated.begin(); destination != correlated.end(); ++destination) {
-    std::cout <<" for each pair of locations" <<std::endl;
     // Get the algorithm type for this location pair
     auto origin = std::prev(destination);
     thor::PathAlgorithm* path_algorithm = get_path_algorithm(costing, *origin, *destination);

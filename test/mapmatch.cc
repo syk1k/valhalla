@@ -179,7 +179,6 @@ void test_matcher() {
     // get a route shape
     PointLL start, end;
     auto test_case = make_test_case(start, end);
-    std::cout << test_case << std::endl;
     boost::property_tree::ptree route;
     std::string route_json;
     try {
@@ -212,7 +211,6 @@ void test_matcher() {
           json_escape(encoded_shape) + "\"}");
       walked = json_to_pt(walked_json);
     } catch (...) {
-      std::cout << test_case << std::endl;
       std::cout << R"({"costing":"auto","shape_match":"edge_walk","encoded_polyline":")" +
                        json_escape(encoded_shape) + "\"}"
                 << std::endl;
@@ -994,14 +992,11 @@ void test_leg_duration_trimming() {
   api_tester tester;
   std::cout << std::endl;
   for (const auto& test_case : test_cases) {
-    std::cout << "### NEW TEST_CASE" << std::endl;
     // for routing we need to do each route separately, and we manually mash them into one object
     valhalla::Api route_api;
     for (const auto& locations : test_case) {
       auto route_test_case = R"({"costing":"auto","locations":)" + locations + '}';
-      std::cout << "<<< ROUTE BEGIN" << std::endl;
       auto single_route_api = tester.route(route_test_case);
-      std::cout << ">>> ROUTE END" << std::endl;
       route_api.mutable_trip()->mutable_routes()->MergeFrom(single_route_api.trip().routes());
     }
 
@@ -1075,7 +1070,7 @@ int main(int argc, char* argv[]) {
 
   suite.test(TEST_CASE(test_topk_frontage_alternate));
 
-  //suite.test(TEST_CASE(test_leg_duration_trimming));
+  suite.test(TEST_CASE(test_leg_duration_trimming));
 
   suite.test(TEST_CASE(test_matching_indices_and_waypoint_indices));
 

@@ -162,18 +162,14 @@ void AStarPathAlgorithm::ExpandForward(GraphReader& graphreader,
 
     // Compute the cost to the end of this edge
     auto edge_cost = costing_->EdgeCost(directededge, tile);
-    Cost newcost = pred.cost() + edge_cost +
-                   costing_->TransitionCost(directededge, nodeinfo, pred);
+    Cost newcost = pred.cost() + edge_cost + costing_->TransitionCost(directededge, nodeinfo, pred);
 
-    std::cout <<"   astar ExpandForward" <<std::endl;
     // If this edge is a destination, subtract the partial/remainder cost
     // (cost from the dest. location to the end of the edge).
     auto p = destinations_percent_along_.find(edgeid);
     if (p != destinations_percent_along_.end()) {
       // Subtract partial cost and time
-      printf("edgeid %i old cost %f, ", edgeid.id(), newcost.secs);
       newcost -= edge_cost * (1.0f - p->second);
-      printf("cached: %f gives new cost %f\n", p->second, newcost.secs);
 
       // Find the destination edge and update cost to include the edge score.
       // Note - with high edge scores the convergence test fails some routes
@@ -250,7 +246,6 @@ AStarPathAlgorithm::GetBestPath(valhalla::Location& origin,
                                 const std::shared_ptr<DynamicCost>* mode_costing,
                                 const TravelMode mode,
                                 const Options& options) {
-  std::cout << "IS ASTAR" << std::endl;
   // Set the mode and costing
   mode_ = mode;
   costing_ = mode_costing[static_cast<uint32_t>(mode_)];
@@ -418,27 +413,25 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
     // destination is in a forward direction along the edge. Add back in
     // the edge score/penalty to account for destination edges farther from
     // the input location lat,lon.
-      if (IsTrivial(edgeid, origin, destination)) {
-        std::cout <<"   IS TRIVIAL" <<std::endl;
-        // Find the destination edge and update cost.
-        for (const auto& dest_path_edge : destination.path_edges()) {
-          if (dest_path_edge.graph_id() == edgeid) {
-            // a trivial route passes along a single edge, meaning that the
-            // destination point must be on this edge, and so the distance
-            // remaining must be zero.
-            GraphId id(dest_path_edge.graph_id());
-            const DirectedEdge* dest_edge = tile->directededge(id);
-            Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
-                                  (1.0f - dest_path_edge.percent_along());
-            // Remove the cost of the final "unused" part of the destination edge
-            cost -= remainder_cost;
-            //cost.secs -= settled_dest_edge->second.secs;
-            // Add back in the edge score/penalty to account for destination edges
-            // farther from the input location lat,lon.
-            cost.cost += dest_path_edge.distance();
-            cost.cost = std::max(0.0f, cost.cost);
-            dist = 0.0;
-          }
+    if (IsTrivial(edgeid, origin, destination)) {
+      // Find the destination edge and update cost.
+      for (const auto& dest_path_edge : destination.path_edges()) {
+        if (dest_path_edge.graph_id() == edgeid) {
+          // a trivial route passes along a single edge, meaning that the
+          // destination point must be on this edge, and so the distance
+          // remaining must be zero.
+          GraphId id(dest_path_edge.graph_id());
+          const DirectedEdge* dest_edge = tile->directededge(id);
+          Cost remainder_cost = costing_->EdgeCost(dest_edge, tile, seconds_of_week) *
+                                (1.0f - dest_path_edge.percent_along());
+          // Remove the cost of the final "unused" part of the destination edge
+          cost -= remainder_cost;
+          // Add back in the edge score/penalty to account for destination edges
+          // farther from the input location lat,lon.
+          cost.cost += dest_path_edge.distance();
+          cost.cost = std::max(0.0f, cost.cost);
+          dist = 0.0;
+        }
       }
     }
 
@@ -516,7 +509,6 @@ std::vector<PathInfo> AStarPathAlgorithm::FormPath(const uint32_t dest) {
   LOG_DEBUG("path_cost::" + std::to_string(edgelabels_[dest].cost().cost));
   LOG_DEBUG("path_iterations::" + std::to_string(edgelabels_.size()));
 
-  float time =0 ;
   // Work backwards from the destination
   std::vector<PathInfo> path;
   for (auto edgelabel_index = dest; edgelabel_index != kInvalidLabel;
@@ -524,7 +516,6 @@ std::vector<PathInfo> AStarPathAlgorithm::FormPath(const uint32_t dest) {
     const EdgeLabel& edgelabel = edgelabels_[edgelabel_index];
     path.emplace_back(edgelabel.mode(), edgelabel.cost().secs, edgelabel.edgeid(), 0,
                       edgelabel.cost().cost, edgelabel.has_time_restriction());
-    time += edgelabel.cost().secs;
 
     // Check if this is a ferry
     if (edgelabel.use() == Use::kFerry) {
@@ -532,7 +523,6 @@ std::vector<PathInfo> AStarPathAlgorithm::FormPath(const uint32_t dest) {
     }
   }
 
-  std::cout<<"astar path costs "<< time<<std::endl;
   // Reverse the list and return
   std::reverse(path.begin(), path.end());
   return path;

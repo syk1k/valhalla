@@ -481,7 +481,6 @@ BidirectionalAStar::GetBestPath(valhalla::Location& origin,
                                 const sif::TravelMode mode,
                                 const Options& options) {
 
-  std::cout << "IS BIDIR" << std::endl;
   // Set the mode and costing
   mode_ = mode;
   costing_ = mode_costing[static_cast<uint32_t>(mode_)];
@@ -887,8 +886,6 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
   uint32_t idx1 = edgestatus_forward_.Get(best_connection_.edgeid).index();
   uint32_t idx2 = edgestatus_reverse_.Get(best_connection_.opp_edgeid).index();
 
-  float time=0;
-
   // Metrics (TODO - more accurate cost)
   uint32_t pathcost = edgelabels_forward_[idx1].cost().cost + edgelabels_reverse_[idx2].cost().cost;
   LOG_DEBUG("path_cost::" + std::to_string(pathcost));
@@ -904,7 +901,6 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
     const BDEdgeLabel& edgelabel = edgelabels_forward_[edgelabel_index];
     path.emplace_back(edgelabel.mode(), edgelabel.cost().secs, edgelabel.edgeid(), 0,
                       edgelabel.cost().cost, edgelabel.has_time_restriction());
-    time += edgelabel.cost().secs;
 
     // Check if this is a ferry
     if (edgelabel.use() == Use::kFerry) {
@@ -959,7 +955,6 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
     cost += tc;
     path.emplace_back(edgelabel.mode(), cost.secs, edgelabel.opp_edgeid(), 0, cost.cost,
                       edgelabel.has_time_restriction());
-    time += edgelabel.cost().secs + tc.secs;
 
     // Check if this is a ferry
     if (edgelabel.use() == Use::kFerry) {
@@ -971,7 +966,6 @@ std::vector<std::vector<PathInfo>> BidirectionalAStar::FormPath(GraphReader& gra
     tc.secs = edgelabel.transition_secs();
     tc.cost = edgelabel.transition_cost();
   }
-  std::cout<<"bidir path costs "<< time<<std::endl;
   return paths;
 }
 

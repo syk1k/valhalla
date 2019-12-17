@@ -162,15 +162,14 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
 
   // Compute the cost to the end of this edge
   auto edge_cost = costing_->EdgeCost(meta.edge, tile, seconds_of_week);
-  Cost newcost = pred.cost() + edge_cost +
-                 costing_->TransitionCost(meta.edge, nodeinfo, pred);
+  Cost newcost = pred.cost() + edge_cost + costing_->TransitionCost(meta.edge, nodeinfo, pred);
 
   // If this edge is a destination, subtract the partial/remainder cost
   // (cost from the dest. location to the end of the edge).
   auto dest_edge = destinations_percent_along_.find(meta.edge_id);
   if (dest_edge != destinations_percent_along_.end()) {
     // Adapt cost to potentially not using the entire destination edge
-    newcost -= edge_cost * (1.0f -dest_edge->second);
+    newcost -= edge_cost * (1.0f - dest_edge->second);
 
     // Find the destination edge and update cost to include the edge score.
     // Note - with high edge scores the convergence test fails some routes
@@ -237,7 +236,6 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
                             const std::shared_ptr<DynamicCost>* mode_costing,
                             const TravelMode mode,
                             const Options& options) {
-  std::cout << "IS FORWARD ASTAR" << std::endl;
   // Set the mode and costing
   mode_ = mode;
   costing_ = mode_costing[static_cast<uint32_t>(mode_)];
