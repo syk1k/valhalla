@@ -992,12 +992,16 @@ void test_leg_duration_trimming() {
   };
 
   api_tester tester;
+  std::cout << std::endl;
   for (const auto& test_case : test_cases) {
+    std::cout << "### NEW TEST_CASE" << std::endl;
     // for routing we need to do each route separately, and we manually mash them into one object
     valhalla::Api route_api;
     for (const auto& locations : test_case) {
       auto route_test_case = R"({"costing":"auto","locations":)" + locations + '}';
+      std::cout << "<<< ROUTE BEGIN" << std::endl;
       auto single_route_api = tester.route(route_test_case);
+      std::cout << ">>> ROUTE END" << std::endl;
       route_api.mutable_trip()->mutable_routes()->MergeFrom(single_route_api.trip().routes());
     }
 
@@ -1030,6 +1034,9 @@ void test_leg_duration_trimming() {
         if (!valhalla::midgard::equal(rtime, mtime, 0.1))
           throw std::logic_error("Leg time differs");
       }
+      if (i == 1) {
+        throw std::runtime_error("foobar");
+      }
     }
   }
 }
@@ -1043,41 +1050,41 @@ int main(int argc, char* argv[]) {
   if (argc > 2)
     bound = std::stoi(argv[2]);
 
-  suite.test(TEST_CASE(test32bit));
+  //suite.test(TEST_CASE(test32bit));
 
-  suite.test(TEST_CASE(test_matcher));
+  //suite.test(TEST_CASE(test_matcher));
 
-  suite.test(TEST_CASE(test_trace_route_breaks));
+  //suite.test(TEST_CASE(test_trace_route_breaks));
 
-  suite.test(TEST_CASE(test_disconnected_edges_expect_no_route));
+  //suite.test(TEST_CASE(test_disconnected_edges_expect_no_route));
 
-  suite.test(TEST_CASE(test_distance_only));
+  //suite.test(TEST_CASE(test_distance_only));
 
-  suite.test(TEST_CASE(test_time_rejection));
+  //suite.test(TEST_CASE(test_time_rejection));
 
-  suite.test(TEST_CASE(test_trace_route_edge_walk_expected_error_code));
+  //suite.test(TEST_CASE(test_trace_route_edge_walk_expected_error_code));
 
-  suite.test(TEST_CASE(test_trace_route_map_snap_expected_error_code));
+  //suite.test(TEST_CASE(test_trace_route_map_snap_expected_error_code));
 
-  suite.test(TEST_CASE(test_trace_attributes_edge_walk_expected_error_code));
+  //suite.test(TEST_CASE(test_trace_attributes_edge_walk_expected_error_code));
 
-  suite.test(TEST_CASE(test_trace_attributes_map_snap_expected_error_code));
+  //suite.test(TEST_CASE(test_trace_attributes_map_snap_expected_error_code));
 
-  suite.test(TEST_CASE(test_topk_validate));
+  //suite.test(TEST_CASE(test_topk_validate));
 
-  suite.test(TEST_CASE(test_topk_fork_alternate));
+  //suite.test(TEST_CASE(test_topk_fork_alternate));
 
-  suite.test(TEST_CASE(test_topk_loop_alternate));
+  //suite.test(TEST_CASE(test_topk_loop_alternate));
 
-  suite.test(TEST_CASE(test_topk_frontage_alternate));
+  //suite.test(TEST_CASE(test_topk_frontage_alternate));
 
   suite.test(TEST_CASE(test_leg_duration_trimming));
 
-  suite.test(TEST_CASE(test_matching_indices_and_waypoint_indices));
+  //suite.test(TEST_CASE(test_matching_indices_and_waypoint_indices));
 
-  suite.test(TEST_CASE(test_now_matches));
+  //suite.test(TEST_CASE(test_now_matches));
 
-  suite.test(TEST_CASE(test_edges_discontinuity_with_multi_routes));
+  //suite.test(TEST_CASE(test_edges_discontinuity_with_multi_routes));
 
   return suite.tear_down();
 }

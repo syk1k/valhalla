@@ -236,6 +236,7 @@ TimeDepForward::GetBestPath(valhalla::Location& origin,
                             const std::shared_ptr<DynamicCost>* mode_costing,
                             const TravelMode mode,
                             const Options& options) {
+  std::cout << "IS FORWARD ASTAR" << std::endl;
   // Set the mode and costing
   mode_ = mode;
   costing_ = mode_costing[static_cast<uint32_t>(mode_)];
