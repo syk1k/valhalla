@@ -52,14 +52,7 @@ jobs:
           key: ccache
           paths:
             - ~/.ccache
-      - run:
-          name: Push Valhalla Docker image
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-              docker push valhalla/docker:build-latest
-              docker push valhalla/docker:build-x86-latest
-            fi
+
   build-release-binary-linux:
     docker:
       - image: valhalla/docker:build-latest
@@ -142,9 +135,30 @@ jobs:
 
   lint-build-debug:
     docker:
-      - image: valhalla/docker:build-latest
+      # Note, this is the primary container and circleci builds the valhalla images
+      # _inside_ this primary. (docker-inside-docker). That implies we don't really care
+      # about what the primary container is as long as docker is installed
+      - image: docker:19.03-git
     steps:
+      - setup_remote_docker
       - checkout
+      - run:
+          name: Fetch existing images
+          command: |
+              docker pull valhalla/docker:build-3.0.2
+              docker pull valhalla/docker:build-x86-3.0.2
+      - run:
+          name: Build Valhalla base Dockerfile
+          command: |
+            docker build -f ./docker/Dockerfile-build --tag valhalla/docker:build-latest ./docker
+      - run:
+          name: Build Valhalla base Dockerfile x86
+          command: |
+            docker build \
+              --file ./docker/Dockerfile-build-x86 \
+              --tag valhalla/docker:build-x86-latest \
+              ./docker
+
       - run: ./scripts/format.sh && ./scripts/error_on_dirty.sh
       - run: git submodule sync && git submodule update --init
       - restore_cache:
@@ -165,6 +179,14 @@ jobs:
           key: ccache
           paths:
             - ~/.ccache
+      # after we are sure the tests are passing, lets push Docker image.
+      # we want to do it only for 'master' branch
+      - push_docker_image:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
 
   build-release:
     docker:
@@ -212,6 +234,13 @@ jobs:
           key: ccache
           paths:
             - ~/.ccache
+      - run:
+          name: Push Valhalla Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+              docker push valhalla/docker:build-x86-latest
+            fi
 
   build-osx:
     executor: macos
