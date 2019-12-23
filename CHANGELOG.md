@@ -9,7 +9,7 @@
 * **Enhancement**
    * ADDED: Allows more complicated routes in timedependent a-star before timing out [#2068](https://github.com/valhalla/valhalla/pull/2068)
    * ADDED: Guide signs and junction names [#2096](https://github.com/valhalla/valhalla/pull/2096)
-
+   * ADDED: Allow using googletest in unit tests [#2128](https://github.com/valhalla/valhalla/pull/2128)
 
 ## Release Date: 2019-11-21 Valhalla 3.0.9
 * **Bug Fix**
