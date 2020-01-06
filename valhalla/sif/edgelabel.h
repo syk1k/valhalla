@@ -587,6 +587,7 @@ public:
    * @param transit_operator Transit operator - index into an internal map
    * @param has_transit   Does the path to this edge have any transit.
    */
+  // 14 PARAM
   MMEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
               const baldr::DirectedEdge* edge,
@@ -600,7 +601,7 @@ public:
               const uint32_t blockid,
               const uint32_t transit_operator,
               const bool has_transit,
-              const bool has_time_restrictions = false)
+              const bool has_time_restrictions)
       : EdgeLabel(predecessor,
                   edgeid,
                   edge,

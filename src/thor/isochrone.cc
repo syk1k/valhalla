@@ -1160,8 +1160,8 @@ void Isochrone::SetDestinationLocations(
       // edge (edgeid) is set.
       uint32_t idx = bdedgelabels_.size();
       uint32_t d = static_cast<uint32_t>(directededge->length() * edge.percent_along());
-      const bool has_time_restrictions =
-          false; // TODO Do we care about time restrictions at destination edges?
+      // TODO Do we care about time restrictions at destination edges?
+      const bool has_time_restrictions = false;
       bdedgelabels_.emplace_back(kInvalidLabel, opp_edge_id, edgeid, opp_dir_edge, cost, mode_,
                                  Cost{}, d, false, has_time_restrictions);
       adjacencylist_->add(idx);
@@ -1226,8 +1226,10 @@ void Isochrone::SetOriginLocationsMM(
       // of the path.
       uint32_t idx = mmedgelabels_.size();
       uint32_t d = static_cast<uint32_t>(directededge->length() * (1.0f - edge.percent_along()));
+      // TODO Do we care about time restrictions at origin edges?
+      bool has_time_restrictions = false;
       MMEdgeLabel edge_label(kInvalidLabel, edgeid, directededge, cost, cost.cost, 0.0f, mode_, d, 0,
-                             GraphId(), 0, 0, false);
+                             GraphId(), 0, 0, false, has_time_restrictions);
 
       // Set the origin flag
       edge_label.set_origin();
