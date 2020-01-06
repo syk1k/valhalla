@@ -50,6 +50,7 @@ public:
             const TravelMode mode,
             const uint32_t path_distance,
             bool has_time_restrictions = false)
+      //: EdgeLabel(predecessor, edgeid, edge, cost, sortcost, dist, mode, 0, has_time_restrictions),
       : predecessor_(predecessor), path_distance_(path_distance), restrictions_(edge->restrictions()),
         edgeid_(edgeid), opp_index_(edge->opp_index()), opp_local_idx_(edge->opp_local_idx()),
         mode_(static_cast<uint32_t>(mode)), endnode_(edge->endnode()),
@@ -396,6 +397,7 @@ public:
    * @param tc           Transition cost entering this edge.
    * @param not_thru_pruning  Is not thru pruning enabled.
    */
+  // 11 PARAM
   BDEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
               const baldr::GraphId& oppedgeid,
@@ -425,6 +427,7 @@ public:
    * @param path_distance Accumulated path distance.
    * @param not_thru_pruning  Is not thru pruning enabled.
    */
+  // 10 PARAM
   BDEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
               const baldr::GraphId& oppedgeid,
@@ -458,6 +461,7 @@ public:
    * @param dist         Distance to the destination in meters.
    * @param mode         Mode of travel along this edge.
    */
+  // 8 PARAM
   BDEdgeLabel(const uint32_t predecessor,
               const baldr::GraphId& edgeid,
               const baldr::DirectedEdge* edge,

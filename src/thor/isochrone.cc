@@ -322,8 +322,8 @@ void Isochrone::ExpandForward(GraphReader& graphreader,
     // Add edge label, add to the adjacency list and set edge status
     uint32_t idx = bdedgelabels_.size();
     *es = {EdgeSet::kTemporary, idx};
-    bdedgelabels_.emplace_back(pred_idx, edgeid, directededge, newcost, newcost.cost, 0.0f, mode_, 0,
-                               has_time_restrictions);
+    bdedgelabels_.emplace_back(pred_idx, edgeid, oppedgeid, directededge, newcost, newcost.cost, 0.0f,
+                               mode_, Cost{}, false, has_time_restrictions);
     adjacencylist_->add(idx);
   }
 
@@ -1087,8 +1087,11 @@ void Isochrone::SetOriginLocations(GraphReader& graphreader,
       // to indicate the origin of the path.
       uint32_t idx = bdedgelabels_.size();
       uint32_t d = static_cast<uint32_t>(directededge->length() * (1.0f - edge.percent_along()));
+      const bool has_time_restrictions =
+          false; // TODO Do we care about time restrictions on origin edges?
+      // NOTE ANDERS This looks correct
       bdedgelabels_.emplace_back(kInvalidLabel, edgeid, opp_edge_id, directededge, cost, mode_,
-                                 Cost{}, d, false);
+                                 Cost{}, d, false, has_time_restrictions);
       // Set the origin flag
       bdedgelabels_.back().set_origin();
 
@@ -1157,8 +1160,10 @@ void Isochrone::SetDestinationLocations(
       // edge (edgeid) is set.
       uint32_t idx = bdedgelabels_.size();
       uint32_t d = static_cast<uint32_t>(directededge->length() * edge.percent_along());
+      const bool has_time_restrictions =
+          false; // TODO Do we care about time restrictions at destination edges?
       bdedgelabels_.emplace_back(kInvalidLabel, opp_edge_id, edgeid, opp_dir_edge, cost, mode_,
-                                 Cost{}, d, false, false);
+                                 Cost{}, d, false, has_time_restrictions);
       adjacencylist_->add(idx);
       edgestatus_.Set(opp_edge_id, EdgeSet::kTemporary, idx, graphreader.GetGraphTile(opp_edge_id));
     }
