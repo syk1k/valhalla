@@ -785,8 +785,18 @@ void BidirectionalAStar::SetOrigin(GraphReader& graphreader, valhalla::Location&
     // to invalid to indicate the origin of the path.
     uint32_t idx = edgelabels_forward_.size();
     edgestatus_forward_.Set(edgeid, EdgeSet::kTemporary, idx, tile);
-    edgelabels_forward_.emplace_back(kInvalidLabel, edgeid, directededge, cost, sortcost, dist, mode_,
-                                     false);
+    edgelabels_forward_.emplace_back(kInvalidLabel,
+        edgeid,
+        GraphId{},
+        directededge,
+        cost,
+        sortcost,
+        dist,
+        mode_,
+        Cost{},
+        0,
+        false,
+        false);
     adjacencylist_forward_->add(idx);
 
     // setting this edge as reached
