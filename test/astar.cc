@@ -100,7 +100,7 @@ namespace {
 // ^ 19     ^ 21     ^ 23
 // |        |        |
 // k        l-->--<--m
-//            26  27
+//            24  27
 //
 std::string test_dir = "test/data/fake_tiles_astar";
 vb::GraphId tile_id = vb::TileHierarchy::GetGraphId({.125, .125}, 2);
@@ -198,41 +198,41 @@ void make_tile() {
   add_node(node::d, 2);
 
   // second set of roads - Triangle
-  add_edge(node::e, node::f, 8, 10, true);
-  add_edge(node::e, node::g, 9, 12, true);
+  add_edge(node::e, node::f, 8, 0, true);
+  add_edge(node::e, node::g, 9, 0, true);
   add_node(node::e, 2);
 
-  add_edge(node::f, node::e, 10, 8, false);
-  add_edge(node::f, node::g, 11, 13, true);
+  add_edge(node::f, node::e, 10, 0, false);
+  add_edge(node::f, node::g, 11, 1, true);
   add_node(node::f, 2);
 
-  add_edge(node::g, node::e, 12, 9, false);
-  add_edge(node::g, node::f, 13, 11, false);
+  add_edge(node::g, node::e, 12, 0, false);
+  add_edge(node::g, node::f, 13, 1, false);
   add_node(node::g, 2);
 
   // Third set of roads - Complex restriction with detour
-  add_edge(node::h, node::i, 14, 15, true);
-  add_edge(node::h, node::k, 18, 19, true);
+  add_edge(node::h, node::i, 14, 0, true);
+  add_edge(node::h, node::k, 18, 0, true);
   add_node(node::h, 2);
 
-  add_edge(node::i, node::h, 15, 14, false);
-  add_edge(node::i, node::l, 20, 21, true);
-  add_edge(node::i, node::j, 16, 17, true);
+  add_edge(node::i, node::h, 15, 0, false);
+  add_edge(node::i, node::l, 20, 0, true);
+  add_edge(node::i, node::j, 16, 0, true);
   add_node(node::i, 3);
 
-  add_edge(node::j, node::i, 17, 16, false);
-  add_edge(node::j, node::m, 22, 23, true);
+  add_edge(node::j, node::i, 17, 2, false);
+  add_edge(node::j, node::m, 22, 0, true);
   add_node(node::j, 2);
 
-  add_edge(node::k, node::h, 19, 18, false);
-  add_node(node::h, 1);
+  add_edge(node::k, node::h, 19, 1, false);
+  add_node(node::k, 1);
 
-  add_edge(node::l, node::i, 21, 20, false);
-  add_edge(node::l, node::m, 26, 27, true);
+  add_edge(node::l, node::i, 21, 1, false);
+  add_edge(node::l, node::m, 24, 1, true);
   add_node(node::l, 2);
 
-  add_edge(node::m, node::j, 22, 23, false);
-  add_edge(node::m, node::l, 27, 26, false);
+  add_edge(node::m, node::j, 23, 1, false);
+  add_edge(node::m, node::l, 25, 1, false);
   add_node(node::m, 2);
 
   tile.StoreTileData();
@@ -291,6 +291,28 @@ enum class TrivialPathTest {
   DurationEqualTo,
 };
 
+std::unique_ptr<vb::GraphReader> get_graph_reader(const std::string& tile_dir) {
+  // make the config file
+  std::stringstream json;
+  json << "{ \"tile_dir\": \"" << tile_dir << "\" }";
+  bpt::ptree conf;
+  rapidjson::read_json(json, conf);
+
+  std::unique_ptr<vb::GraphReader> reader(new vb::GraphReader(conf));
+  auto* tile = reader->GetGraphTile(tile_id);
+  if (tile == nullptr) {
+    throw std::runtime_error("Unable to load test tile! Did `make_tile` run succesfully?");
+  }
+  if (tile->header()->directededgecount() != 26) {
+    throw std::runtime_error("test-tiles does not contain expected number of edges, (it contained "+std::to_string(tile->header()->directededgecount()));
+  }
+  const GraphTile* endtile = reader->GetGraphTile(node::b.first);
+  if (endtile == nullptr) {
+    throw std::runtime_error("bad tile, node::b wasn't found in it");
+  }
+  return reader;
+}
+
 // check that a path from origin to dest goes along the edge with expected_edge_index
 void assert_is_trivial_path(vt::PathAlgorithm& astar,
                             valhalla::Location& origin,
@@ -300,24 +322,7 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
                             int32_t assert_type_value,
                             vs::TravelMode mode = vs::TravelMode::kPedestrian) {
 
-  // make the config file
-  std::stringstream json;
-  json << "{ \"tile_dir\": \"" << test_dir << "\" }";
-  bpt::ptree conf;
-  rapidjson::read_json(json, conf);
-
-  vb::GraphReader reader(conf);
-  auto* tile = reader.GetGraphTile(tile_id);
-  if (tile == nullptr) {
-    throw std::runtime_error("Unable to load test tile! Did `make_tile` run succesfully?");
-  }
-  if (tile->header()->directededgecount() != 26) {
-    throw std::runtime_error("test-tiles does not contain expected number of edges, (it contained "+std::to_string(tile->header()->directededgecount()));
-  }
-  const GraphTile* endtile = reader.GetGraphTile(node::b.first);
-  if (endtile == nullptr) {
-    throw std::runtime_error("bad tile, node::b wasn't found in it");
-  }
+  auto reader = get_graph_reader(test_dir);
 
   Options options;
   create_costing_options(options);
@@ -338,7 +343,7 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
   }
   assert(bool(costs[int(mode)]));
 
-  auto paths = astar.GetBestPath(origin, dest, reader, costs, mode);
+  auto paths = astar.GetBestPath(origin, dest, *reader, costs, mode);
 
   int32_t time = 0;
   for (const auto& path : paths) {
@@ -356,6 +361,7 @@ void assert_is_trivial_path(vt::PathAlgorithm& astar,
     break;
   }
 
+  auto* tile = reader->GetGraphTile(tile_id);
   uint32_t expected_time = 979797;
   switch (assert_type) {
     case TrivialPathTest::DurationEqualTo:
@@ -1155,6 +1161,49 @@ void TestBacktrackComplexRestrictionBidirectional() {
   test_backtrack_complex_restriction(0);
 }
 
+void TestBacktrackComplexRestrictionForwardOvershoot() {
+  // This tests if a detour is _after_ a partial complex restriction
+  // The other tests with Bayfront Singapore tests with a detour _before_
+  // the complex restriction
+  auto conf = get_conf(test_dir.c_str());
+  LOG_INFO("");
+
+  valhalla::Location origin;
+  origin.set_date_time("2019-11-21T23:05");
+  origin.mutable_ll()->set_lng(node::k.second.first);
+  origin.mutable_ll()->set_lat(node::k.second.second);
+  add(tile_id + uint64_t(19), 0.0f, node::k.second, origin);
+  add(tile_id + uint64_t(18), 1.0f, node::k.second, origin);
+
+  valhalla::Location dest;
+  dest.mutable_ll()->set_lng(node::l.second.first);
+  dest.mutable_ll()->set_lat(node::l.second.second);
+  add(tile_id + uint64_t(21), 0.0f, node::l.second, dest);
+  add(tile_id + uint64_t(20), 1.0f, node::l.second, dest);
+  add(tile_id + uint64_t(26), 0.0f, node::l.second, dest);
+  add(tile_id + uint64_t(27), 1.0f, node::l.second, dest);
+
+  Options options;
+  create_costing_options(options);
+  vs::cost_ptr_t costs[int(vs::TravelMode::kMaxTravelMode)];
+  auto mode = vs::TravelMode::kDrive;
+      costs[int(mode)] = vs::CreateAutoCost(Costing::auto_, options);
+  assert(bool(costs[int(mode)]));
+
+  auto reader = get_graph_reader(test_dir);
+  vt::TimeDepForward astar;
+  auto paths = astar.GetBestPath(origin, dest, *reader, costs, mode).front();
+
+  for (auto path_info : paths) {
+    LOG_INFO("Got pathinfo "+std::to_string(path_info.edgeid.id()));
+  }
+  auto correct_len = 5;
+  if (paths.size() != correct_len) {
+    throw std::runtime_error("Wrong number of paths in response: "+std::to_string(paths.size())+" != "+std::to_string(correct_len));
+  }
+
+}
+
 } // anonymous namespace
 
 int main() {
@@ -1182,6 +1231,7 @@ int main() {
   suite.test(TEST_CASE(TestBacktrackComplexRestrictionForward));
   suite.test(TEST_CASE(TestBacktrackComplexRestrictionReverse));
   suite.test(TEST_CASE(TestBacktrackComplexRestrictionBidirectional));
+  suite.test(TEST_CASE(TestBacktrackComplexRestrictionForwardOvershoot));
 
   return suite.tear_down();
 }

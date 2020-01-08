@@ -44,6 +44,8 @@ bool TimeDepForward::ExpandForward(GraphReader& graphreader,
                                    int32_t seconds_of_week,
                                    const valhalla::Location& destination,
                                    std::pair<int32_t, float>& best_path) {
+  LOGLN_INFO("Expanding edge " + std::to_string(pred.edgeid().id()) + " leading to node " +
+             std::to_string(pred.endnode().id()));
   // Get the tile and the node info. Skip if tile is null (can happen
   // with regional data sets) or if no access at the node.
   const GraphTile* tile = graphreader.GetGraphTile(node);
@@ -148,6 +150,7 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
                                                const valhalla::Location& destination,
                                                std::pair<int32_t, float>& best_path) {
 
+  LOGLN_INFO("Expanding inner " + std::to_string(meta.edge_id.id()));
   // Skip this edge if permanently labeled (best path already found to this
   // directed edge)
   if (meta.edge_status->set() == EdgeSet::kPermanent) {

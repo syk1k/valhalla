@@ -454,6 +454,9 @@ void AStarPathAlgorithm::SetOrigin(GraphReader& graphreader,
     // Set the origin flag
     edge_label.set_origin();
 
+    LOGLN_INFO("SetOrigin " + std::to_string(edgeid.id()) + " leading to node " +
+               std::to_string(directededge->endnode().id()));
+
     // Add EdgeLabel to the adjacency list
     uint32_t idx = edgelabels_.size();
     edgelabels_.push_back(edge_label);
