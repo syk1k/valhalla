@@ -103,7 +103,7 @@ namespace {
 //            24  27
 //
 std::string test_dir = "test/data/fake_tiles_astar";
-vb::GraphId tile_id = vb::TileHierarchy::GetGraphId({.125, .125}, 2);
+const vb::GraphId tile_id = vb::TileHierarchy::GetGraphId({.125, .125}, 2);
 
 namespace node {
 std::pair<vb::GraphId, vm::PointLL> a({tile_id.tileid(), tile_id.level(), 0}, {0.01, 0.10});
@@ -115,12 +115,12 @@ std::pair<vb::GraphId, vm::PointLL> e({tile_id.tileid(), tile_id.level(), 4}, {0
 std::pair<vb::GraphId, vm::PointLL> f({tile_id.tileid(), tile_id.level(), 5}, {0.20, 0.14});
 std::pair<vb::GraphId, vm::PointLL> g({tile_id.tileid(), tile_id.level(), 6}, {0.25, 0.11});
 
-std::pair<vb::GraphId, vm::PointLL> h({tile_id.tileid(), tile_id.level(), 7},  {1.00, 0.10});
-std::pair<vb::GraphId, vm::PointLL> i({tile_id.tileid(), tile_id.level(), 8},  {1.10, 0.10});
-std::pair<vb::GraphId, vm::PointLL> j({tile_id.tileid(), tile_id.level(), 9},  {1.20, 0.10});
-std::pair<vb::GraphId, vm::PointLL> k({tile_id.tileid(), tile_id.level(), 10}, {1.00, 0.01});
-std::pair<vb::GraphId, vm::PointLL> l({tile_id.tileid(), tile_id.level(), 11}, {1.10, 0.01});
-std::pair<vb::GraphId, vm::PointLL> m({tile_id.tileid(), tile_id.level(), 12}, {1.20, 0.01});
+std::pair<vb::GraphId, vm::PointLL> h({tile_id.tileid(), tile_id.level(), 7},  {0.00, 0.10});
+std::pair<vb::GraphId, vm::PointLL> i({tile_id.tileid(), tile_id.level(), 8},  {0.10, 0.10});
+std::pair<vb::GraphId, vm::PointLL> j({tile_id.tileid(), tile_id.level(), 9},  {0.20, 0.10});
+std::pair<vb::GraphId, vm::PointLL> k({tile_id.tileid(), tile_id.level(), 10}, {0.00, 0.01});
+std::pair<vb::GraphId, vm::PointLL> l({tile_id.tileid(), tile_id.level(), 11}, {0.10, 0.01});
+std::pair<vb::GraphId, vm::PointLL> m({tile_id.tileid(), tile_id.level(), 12}, {0.20, 0.01});
 } // namespace node
 
 void make_tile() {
@@ -1211,12 +1211,12 @@ int main() {
 
   suite.test(TEST_CASE(make_tile));
 
-  suite.test(TEST_CASE(TestTrivialPathForward));
-  suite.test(TEST_CASE(TestTrivialPathReverse));
-  suite.test(TEST_CASE(TestTrivialPathTriangle));
-  suite.test(TEST_CASE(TestPartialDurationTrivial));
-  suite.test(TEST_CASE(TestPartialDurationForward));
-  suite.test(TEST_CASE(TestPartialDurationReverse));
+  //suite.test(TEST_CASE(TestTrivialPathForward));
+  //suite.test(TEST_CASE(TestTrivialPathReverse));
+  //suite.test(TEST_CASE(TestTrivialPathTriangle));
+  //suite.test(TEST_CASE(TestPartialDurationTrivial));
+  //suite.test(TEST_CASE(TestPartialDurationForward));
+  //suite.test(TEST_CASE(TestPartialDurationReverse));
 
   //suite.test(TEST_CASE(DoConfig));
   //suite.test(TEST_CASE(TestTrivialPathNoUturns));
@@ -1228,9 +1228,9 @@ int main() {
   //suite.test(TEST_CASE(test_oneway_wrong_way));
   //suite.test(TEST_CASE(test_time_restricted_road));
 
-  suite.test(TEST_CASE(TestBacktrackComplexRestrictionForward));
-  suite.test(TEST_CASE(TestBacktrackComplexRestrictionReverse));
-  suite.test(TEST_CASE(TestBacktrackComplexRestrictionBidirectional));
+  //suite.test(TEST_CASE(TestBacktrackComplexRestrictionForward));
+  //suite.test(TEST_CASE(TestBacktrackComplexRestrictionReverse));
+  //suite.test(TEST_CASE(TestBacktrackComplexRestrictionBidirectional));
   suite.test(TEST_CASE(TestBacktrackComplexRestrictionForwardOvershoot));
 
   return suite.tear_down();

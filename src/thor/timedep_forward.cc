@@ -150,7 +150,7 @@ inline bool TimeDepForward::ExpandForwardInner(GraphReader& graphreader,
                                                const valhalla::Location& destination,
                                                std::pair<int32_t, float>& best_path) {
 
-  LOGLN_INFO("Expanding inner " + std::to_string(meta.edge_id.id()));
+  LOGLN_INFO("Expanding inner edge " + std::to_string(meta.edge_id.id())+" to node "+std::to_string(meta.edge->endnode().id())+" from pred "+std::to_string(pred.edgeid().id()));
   // Skip this edge if permanently labeled (best path already found to this
   // directed edge)
   if (meta.edge_status->set() == EdgeSet::kPermanent) {
